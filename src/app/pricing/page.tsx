@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KollabLogo } from "@/components/ui/kollab-logo";
+import { NavbarAuth } from "@/components/layout/NavbarAuth";
 
 export default function PricingPage() {
   return (
@@ -15,18 +16,7 @@ export default function PricingPage() {
               KOLLAB
             </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/sign-in">
-              <Button variant="ghost" className="text-xs font-semibold text-slate-700 hover:bg-emerald-50 rounded-xl">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button className="bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-semibold shadow-sm shadow-emerald-500/20">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
+          <NavbarAuth />
         </div>
       </header>
 

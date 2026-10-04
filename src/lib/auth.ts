@@ -109,8 +109,8 @@ export async function getCurrentUser(): Promise<UserSession | null> {
     // In static rendering or non-request context
   }
 
-  // Default active user for seamless instant access & browser testing
-  return DEMO_USERS[0];
+  // Return null if no session cookie exists
+  return null;
 }
 
 export async function requireAuth(): Promise<UserSession> {

@@ -4,6 +4,8 @@ import { ShieldCheck, Lock, Key, Server, FileCheck, CheckCircle2 } from "lucide-
 import { Button } from "@/components/ui/button";
 import { KollabLogo } from "@/components/ui/kollab-logo";
 
+import { NavbarAuth } from "@/components/layout/NavbarAuth";
+
 export default function SecurityPage() {
   return (
     <div className="min-h-screen bg-[#F4FAF6] text-slate-900 flex flex-col">
@@ -15,18 +17,7 @@ export default function SecurityPage() {
               KOLLAB
             </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/sign-in">
-              <Button variant="ghost" className="text-xs font-semibold text-slate-700 hover:bg-emerald-50 rounded-xl">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button className="bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-semibold shadow-sm shadow-emerald-500/20">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
+          <NavbarAuth />
         </div>
       </header>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -54,6 +54,22 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+        } else {
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => {
+        setCurrentUser(null);
+      });
+  }, []);
 
   return (
     <aside className="w-64 border-r border-emerald-100/80 bg-white flex flex-col justify-between h-screen sticky top-0 shrink-0 select-none">
@@ -172,15 +188,17 @@ export function Sidebar() {
           </div>
         </Link>
 
-        <div className="flex items-center justify-between px-1 text-xs text-slate-500 pt-1">
-          <Link href="/sign-in" className="hover:text-[#059669] font-semibold transition-colors">
-            Sign In
-          </Link>
-          <span className="text-slate-300">•</span>
-          <Link href="/sign-up" className="hover:text-[#059669] font-semibold transition-colors">
-            Sign Up
-          </Link>
-        </div>
+        {!currentUser && (
+          <div className="flex items-center justify-between px-1 text-xs text-slate-500 pt-1">
+            <Link href="/sign-in" className="hover:text-[#059669] font-semibold transition-colors">
+              Sign In
+            </Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/sign-up" className="hover:text-[#059669] font-semibold transition-colors">
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </aside>
   );

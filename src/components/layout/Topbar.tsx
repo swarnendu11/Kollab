@@ -32,13 +32,7 @@ export function Topbar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState<any>({
-    id: "user_alex",
-    fullName: "Alex Morgan",
-    email: "alex.morgan@kollab.io",
-    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-    role: "Engineering Lead (Admin)",
-  });
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([
@@ -69,10 +63,16 @@ export function Topbar() {
     fetch("/api/auth/session")
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setCurrentUser(data.user);
+        if (data.user) {
+          setCurrentUser(data.user);
+        } else {
+          setCurrentUser(null);
+        }
         if (data.availableUsers) setAvailableUsers(data.availableUsers);
       })
-      .catch(() => {});
+      .catch(() => {
+        setCurrentUser(null);
+      });
   }, []);
 
   const switchUser = async (userId: string) => {
@@ -91,7 +91,9 @@ export function Topbar() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "signout" }),
     });
-    router.push("/sign-in");
+    setCurrentUser(null);
+    setProfileOpen(false);
+    window.location.href = "/sign-in";
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -264,122 +266,108 @@ export function Topbar() {
             )}
           </div>
 
-          {/* User Profile / Switcher */}
-          <div className="relative">
-            <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 p-1 pl-2.5 rounded-full hover:bg-emerald-50 transition-colors border border-emerald-200/80"
-            >
-              <span className="text-xs font-semibold text-emerald-950 hidden md:inline">
-                {currentUser.fullName}
-              </span>
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={currentUser.avatarUrl} />
-                <AvatarFallback>{currentUser.fullName?.[0] || "U"}</AvatarFallback>
-              </Avatar>
-            </button>
-
-            {profileOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setProfileOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-emerald-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="p-3 border-b border-slate-100">
-                    <div className="font-semibold text-sm text-slate-900">{currentUser.fullName}</div>
-                    <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
-                    <div className="mt-1 text-[11px] font-bold text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block border border-emerald-100">
-                      {currentUser.role || "Member"}
-                    </div>
-                  </div>
-
-                  {/* Switch user demo selector */}
-                  <div className="py-2 border-b border-slate-100">
-                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Switch Active User
-                    </div>
-                    {availableUsers.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => switchUser(u.id)}
-                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-50 transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="w-5 h-5">
-                            <AvatarImage src={u.avatarUrl} />
-                            <AvatarFallback>{u.fullName[0]}</AvatarFallback>
-                          </Avatar>
-                          <span className={u.id === currentUser.id ? "font-bold text-[#059669]" : "text-slate-700"}>
-                            {u.fullName}
-                          </span>
-                        </div>
-                        {u.id === currentUser.id && <Check className="w-3.5 h-3.5 text-[#059669]" />}
-                      </button>
-                    ))}
-                  </div>
-
-                  <Link
-                    href="/sign-in"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
-                  >
-                    <LogIn className="w-4 h-4 text-emerald-600" />
-                    <span>Sign In to Another Account</span>
-                  </Link>
-
-                  <Link
-                    href="/sign-up"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4 text-[#059669]" />
-                    <span>Create New Account (Sign Up)</span>
-                  </Link>
-
-                  <Link
-                    href="/settings/profile"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
-                  >
-                    <UserIcon className="w-4 h-4 text-slate-400" />
-                    <span>Account Settings</span>
-                  </Link>
-
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-red-600 hover:bg-red-50 transition-colors text-left"
-                  >
-                    <LogOut className="w-4 h-4 text-red-500" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Direct Sign In & Sign Up Navbar Quick Actions */}
-          <div className="hidden md:flex items-center gap-1 border-l border-emerald-100 pl-2">
-            <Link href="/sign-in">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs font-semibold text-slate-600 hover:text-emerald-950 hover:bg-emerald-50 rounded-lg flex items-center gap-1"
+          {/* Dynamic Authentication Navbar Display */}
+          {currentUser ? (
+            /* WHEN SIGNED IN: Totally hide Sign In & Sign Up, show ONLY Name and Accounts */
+            <div className="relative">
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-2 p-1.5 pl-3 rounded-full hover:bg-emerald-50 transition-colors border border-emerald-200/90 shadow-2xs group"
               >
-                <LogIn className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Sign In</span>
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button
-                size="sm"
-                className="h-8 px-2.5 text-xs bg-emerald-50 text-[#047857] hover:bg-emerald-100 border border-emerald-200 font-bold rounded-lg shadow-2xs flex items-center gap-1"
-              >
-                <UserPlus className="w-3.5 h-3.5 text-[#059669]" />
-                <span>Sign Up</span>
-              </Button>
-            </Link>
-          </div>
+                <span className="text-xs font-bold text-emerald-950 max-w-[120px] truncate">
+                  {currentUser.fullName}
+                </span>
+                <Avatar className="w-8 h-8 ring-2 ring-[#10B981]/30">
+                  <AvatarImage src={currentUser.avatarUrl} />
+                  <AvatarFallback>{currentUser.fullName?.[0] || "U"}</AvatarFallback>
+                </Avatar>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-colors mr-1" />
+              </button>
+
+              {profileOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProfileOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-emerald-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="p-3 border-b border-slate-100">
+                      <div className="font-semibold text-sm text-slate-900">{currentUser.fullName}</div>
+                      <div className="text-xs text-slate-500 truncate">{currentUser.email}</div>
+                      <div className="mt-1 text-[11px] font-bold text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block border border-emerald-100">
+                        {currentUser.role || "Member"}
+                      </div>
+                    </div>
+
+                    {/* Switch user demo selector */}
+                    <div className="py-2 border-b border-slate-100">
+                      <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Switch Active User
+                      </div>
+                      {availableUsers.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => switchUser(u.id)}
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs hover:bg-emerald-50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Avatar className="w-5 h-5">
+                              <AvatarImage src={u.avatarUrl} />
+                              <AvatarFallback>{u.fullName[0]}</AvatarFallback>
+                            </Avatar>
+                            <span className={u.id === currentUser.id ? "font-bold text-[#059669]" : "text-slate-700"}>
+                              {u.fullName}
+                            </span>
+                          </div>
+                          {u.id === currentUser.id && <Check className="w-3.5 h-3.5 text-[#059669]" />}
+                        </button>
+                      ))}
+                    </div>
+
+                    <Link
+                      href="/settings/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
+                    >
+                      <UserIcon className="w-4 h-4 text-slate-400" />
+                      <span>Account Settings</span>
+                    </Link>
+
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            /* WHEN NOT SIGNED IN: Show Sign In and Sign Up buttons */
+            <div className="flex items-center gap-2">
+              <Link href="/sign-in">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3 text-xs font-semibold text-slate-700 hover:text-emerald-950 hover:bg-emerald-50 rounded-xl flex items-center gap-1.5"
+                >
+                  <LogIn className="w-4 h-4 text-emerald-600" />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button
+                  size="sm"
+                  className="h-9 px-3.5 text-xs bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-xl shadow-sm shadow-emerald-500/20 flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Sign Up</span>
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
