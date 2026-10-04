@@ -28,10 +28,15 @@ export default function FeaturesPage() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard">
+          <div className="flex items-center gap-2">
+            <Link href="/sign-in">
+              <Button variant="ghost" className="text-xs font-semibold text-slate-700 hover:bg-emerald-50 rounded-xl">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/sign-up">
               <Button className="bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-semibold shadow-sm shadow-emerald-500/20">
-                Go to App
+                Sign Up
               </Button>
             </Link>
           </div>

@@ -15,8 +15,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { FirebaseAuthProvider } from "@/context/firebase-auth-context";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,9 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased">
-        <FirebaseAuthProvider>
-          {children}
-        </FirebaseAuthProvider>
+        {children}
       </body>
     </html>
   );

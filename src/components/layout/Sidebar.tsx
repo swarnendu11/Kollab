@@ -154,23 +154,33 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Kollab AI Assistant Quick Launch */}
-      <div className="p-4 border-t border-emerald-100/80">
+      {/* Kollab AI Assistant Quick Launch & Auth Links */}
+      <div className="p-4 border-t border-emerald-100/80 space-y-2">
         <Link
           href="/dashboard#ai-assistant"
-          className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-50/90 to-teal-50/90 border border-[#10B981]/25 hover:border-[#10B981]/50 transition-all group shadow-2xs"
+          className="flex items-center gap-3 p-2.5 rounded-2xl bg-gradient-to-r from-emerald-50/90 to-teal-50/90 border border-[#10B981]/25 hover:border-[#10B981]/50 transition-all group shadow-2xs"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-xl bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30 group-hover:scale-105 transition-transform">
+            <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>
             <div className="text-xs font-bold text-emerald-950 flex items-center gap-1">
               Ask Kollab AI
               <ChevronRight className="w-3 h-3 text-[#10B981] group-hover:translate-x-0.5 transition-transform" />
             </div>
-            <div className="text-[11px] text-emerald-700/80">Autonomous meeting intelligence</div>
+            <div className="text-[10px] text-emerald-700/80">Autonomous meeting intelligence</div>
           </div>
         </Link>
+
+        <div className="flex items-center justify-between px-1 text-xs text-slate-500 pt-1">
+          <Link href="/sign-in" className="hover:text-[#059669] font-semibold transition-colors">
+            Sign In
+          </Link>
+          <span className="text-slate-300">•</span>
+          <Link href="/sign-up" className="hover:text-[#059669] font-semibold transition-colors">
+            Sign Up
+          </Link>
+        </div>
       </div>
     </aside>
   );

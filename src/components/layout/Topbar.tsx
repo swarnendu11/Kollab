@@ -17,6 +17,8 @@ import {
   ChevronDown,
   User as UserIcon,
   Sparkles,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -318,6 +320,24 @@ export function Topbar() {
                   </div>
 
                   <Link
+                    href="/sign-in"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
+                  >
+                    <LogIn className="w-4 h-4 text-emerald-600" />
+                    <span>Sign In to Another Account</span>
+                  </Link>
+
+                  <Link
+                    href="/sign-up"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4 text-[#059669]" />
+                    <span>Create New Account (Sign Up)</span>
+                  </Link>
+
+                  <Link
                     href="/settings/profile"
                     onClick={() => setProfileOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-emerald-50 transition-colors"
@@ -336,6 +356,29 @@ export function Topbar() {
                 </div>
               </>
             )}
+          </div>
+
+          {/* Direct Sign In & Sign Up Navbar Quick Actions */}
+          <div className="hidden md:flex items-center gap-1 border-l border-emerald-100 pl-2">
+            <Link href="/sign-in">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs font-semibold text-slate-600 hover:text-emerald-950 hover:bg-emerald-50 rounded-lg flex items-center gap-1"
+              >
+                <LogIn className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Sign In</span>
+              </Button>
+            </Link>
+            <Link href="/sign-up">
+              <Button
+                size="sm"
+                className="h-8 px-2.5 text-xs bg-emerald-50 text-[#047857] hover:bg-emerald-100 border border-emerald-200 font-bold rounded-lg shadow-2xs flex items-center gap-1"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-[#059669]" />
+                <span>Sign Up</span>
+              </Button>
+            </Link>
           </div>
         </div>
       </header>

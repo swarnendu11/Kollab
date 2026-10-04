@@ -51,15 +51,15 @@ export default function LandingPage() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Link href="/sign-in">
-              <Button variant="ghost" className="font-semibold text-slate-700 hover:text-emerald-950 hover:bg-emerald-50">
+              <Button variant="ghost" className="font-semibold text-slate-700 hover:text-emerald-950 hover:bg-emerald-50 rounded-xl px-3.5">
                 Sign In
               </Button>
             </Link>
-            <Link href="/dashboard">
-              <Button className="bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-600/30 rounded-xl px-4 font-bold gap-1.5">
-                <span>Start collaborating</span>
+            <Link href="/sign-up">
+              <Button className="bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-600/25 rounded-xl px-4 font-bold gap-1.5">
+                <span>Sign Up</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
