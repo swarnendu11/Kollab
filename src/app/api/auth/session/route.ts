@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
+import {
+  getCurrentUser,
+  hashPassword,
+  isValidPassword,
+  PASSWORD_POLICY_MESSAGE,
+  verifyPassword,
+} from "@/lib/auth";
 import { cookies } from "next/headers";
 import { getDb } from "@/db";
 import { users, organizations, organizationMembers } from "@/db/schema";
@@ -33,6 +39,10 @@ export async function POST(req: Request) {
           { error: "Name, email, and password are required" },
           { status: 400 }
         );
+      }
+
+      if (!isValidPassword(password)) {
+        return NextResponse.json({ error: PASSWORD_POLICY_MESSAGE }, { status: 400 });
       }
 
       const normalizedEmail = email.trim().toLowerCase();

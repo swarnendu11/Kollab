@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KollabLogo } from "@/components/ui/kollab-logo";
+import { isValidPassword, PASSWORD_POLICY_MESSAGE } from "@/lib/auth";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -34,8 +35,8 @@ export default function SignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!isValidPassword(password)) {
+      setError(PASSWORD_POLICY_MESSAGE);
       return;
     }
 
@@ -138,12 +139,12 @@ export default function SignUpPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="6-8 characters"
                   className="pl-10 h-11 rounded-xl border-slate-200 focus:border-[#10B981] focus:ring-[#10B981]/20 text-sm"
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Must be at least 6 characters
+                6-8 characters with uppercase, lowercase, a number, and a symbol
               </p>
             </div>
 
