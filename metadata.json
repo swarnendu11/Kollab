@@ -1,0 +1,8 @@
+{
+  "name": "Kollab",
+  "description": "AI-first unified communication and collaboration platform. Video meetings, team chat, calendar, documents, whiteboards, recordings, and intelligent assistant.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

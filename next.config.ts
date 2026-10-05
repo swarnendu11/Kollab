@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   serverExternalPackages: ["@electric-sql/pglite", "postgres"],
   reactStrictMode: false, // Prevents double-invocation of camera/mic streams in dev mode
   images: {
