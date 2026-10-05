@@ -101,7 +101,7 @@ export default function WhiteboardsPage() {
                     {wb.title}
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Created by {wb.authorName || "Alex Morgan"}
+                    Created by {wb.authorName || "Team Member"}
                   </p>
                 </div>
 

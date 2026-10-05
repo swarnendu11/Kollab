@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       contactUserId: null,
       contactName,
       contactEmail,
-      contactAvatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150`,
+      contactAvatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(contactName)}`,
       phone,
       status: "active",
       createdAt: new Date(),

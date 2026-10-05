@@ -124,8 +124,8 @@ export async function POST(
       id: `ai_${Date.now()}_2`,
       meetingId: id,
       task: "Share meeting summary and notes with stakeholders",
-      ownerName: "Sarah Chen",
-      ownerId: "user_sarah",
+      ownerName: "Team Collaborator",
+      ownerId: user.id,
       dueDate: "Tomorrow, 5:00 PM",
       status: "todo",
     };

@@ -48,6 +48,7 @@ async function initializeTables(client: PGlite) {
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
       full_name TEXT NOT NULL,
+      password_hash TEXT,
       avatar_url TEXT,
       role TEXT DEFAULT 'member',
       status TEXT DEFAULT 'active',
@@ -253,8 +254,8 @@ async function initializeTables(client: PGlite) {
     );
   `);
 
-  // Check if initial users exist, if not seed
-  const res = await client.query("SELECT COUNT(*) FROM users;");
+  // Check if workspace organization exists, if not seed workspace
+  const res = await client.query("SELECT COUNT(*) FROM organizations;");
   const count = parseInt((res.rows[0] as any)?.count || "0", 10);
   if (count === 0) {
     await seedInitialData(client);
@@ -262,99 +263,19 @@ async function initializeTables(client: PGlite) {
 }
 
 async function seedInitialData(client: PGlite) {
-  // Users
+  // Organizations
   await client.exec(`
-    INSERT INTO users (id, email, full_name, avatar_url, role) VALUES
-    ('user_alex', 'alex.morgan@kollab.io', 'Alex Morgan', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', 'admin'),
-    ('user_sarah', 'sarah.chen@kollab.io', 'Sarah Chen', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'member'),
-    ('user_david', 'david.kim@kollab.io', 'David Kim', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'member'),
-    ('user_elena', 'elena.rostova@kollab.io', 'Elena Rostova', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', 'member');
-
     INSERT INTO organizations (id, name, slug) VALUES
-    ('org_kollab', 'Kollab Core Team', 'kollab-team');
+    ('org_kollab', 'Kollab Workspace', 'kollab-workspace')
+    ON CONFLICT DO NOTHING;
 
-    INSERT INTO organization_members (id, organization_id, user_id, role) VALUES
-    ('om_1', 'org_kollab', 'user_alex', 'owner'),
-    ('om_2', 'org_kollab', 'user_sarah', 'admin'),
-    ('om_3', 'org_kollab', 'user_david', 'member'),
-    ('om_4', 'org_kollab', 'user_elena', 'member');
-
-    -- Meetings
-    INSERT INTO meetings (id, title, description, host_id, scheduled_start, scheduled_end, status, join_code, room_name) VALUES
-    ('meet_product_sync', 'Weekly Product Design Sync', 'Review Q4 roadmap, video calling UX, and user test feedback.', 'user_alex', NOW() + INTERVAL '1 hour', NOW() + INTERVAL '2 hours', 'scheduled', 'klb-sync-q4', 'room_klb_sync_q4'),
-    ('meet_standup', 'Engineering Daily Standup', 'Unblockers, PR reviews, WebRTC pipeline optimizations.', 'user_alex', NOW() + INTERVAL '4 hours', NOW() + INTERVAL '4 hours 30 minutes', 'scheduled', 'klb-eng-daily', 'room_klb_eng_daily'),
-    ('meet_all_hands', 'Company All-Hands & Demo Day', 'Company-wide updates, live AI feature demos, and open Q&A.', 'user_alex', NOW() + INTERVAL '1 day', NOW() + INTERVAL '1 day 1 hour', 'scheduled', 'klb-all-hands', 'room_klb_all_hands');
-
-    -- Past Meeting & Recording
-    INSERT INTO meetings (id, title, description, host_id, actual_start, actual_end, status, join_code, room_name) VALUES
-    ('meet_past_launch', 'Kollab 2.0 Launch Strategy', 'Finalizing go-to-market plan, marketing launch, and target dates.', 'user_alex', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days' + INTERVAL '45 minutes', 'ended', 'klb-launch-review', 'room_launch_review');
-
-    INSERT INTO recordings (id, meeting_id, title, duration_seconds, file_url, file_size_bytes, thumbnail_url, status) VALUES
-    ('rec_1', 'meet_past_launch', 'Kollab 2.0 Launch Strategy - Session Recording', 2700, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 184500000, 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600', 'ready');
-
-    INSERT INTO transcripts (id, meeting_id, recording_id, full_text, language) VALUES
-    ('tr_1', 'meet_past_launch', 'rec_1', '00:02 Sarah: Let us review the launch timeline. We want the WebRTC media pipeline verified by Friday. 00:35 Alex: I agree, October 21 is our target demo date. 01:12 David: I will handle the background effects and real-time captioning pipeline.', 'en');
-
-    INSERT INTO transcript_segments (id, transcript_id, speaker_name, start_time_seconds, end_time_seconds, text) VALUES
-    ('ts_1', 'tr_1', 'Sarah Chen', 2, 28, 'Let us review the launch timeline. We want the WebRTC media pipeline verified by Friday.'),
-    ('ts_2', 'tr_1', 'Alex Morgan', 35, 65, 'I agree, October 21 is our target demo date. Audio cancellation and lighting filters are ready.'),
-    ('ts_3', 'tr_1', 'David Kim', 72, 110, 'I will handle the background effects and real-time captioning pipeline.');
-
-    INSERT INTO meeting_summaries (id, meeting_id, summary_text, key_decisions, topics, important_moments) VALUES
-    ('sum_1', 'meet_past_launch', 'The team aligned on the Kollab 2.0 release date. WebRTC media streaming and AI summaries have passed performance benchmarks. Noise cancellation standard mode is enabled by default.', 
-     '["Target launch date finalized for October 21", "Noise suppression default set to Standard", "Realtime captioning enabled across all meeting tiers"]'::jsonb,
-     '["Launch Strategy", "WebRTC Media Performance", "AI Summaries Rollout"]'::jsonb,
-     '[{"time": "00:02", "title": "Opening & Roadmap Review", "note": "Sarah presented the Q4 milestones"}, {"time": "00:35", "title": "Launch Date Decision", "note": "Alex confirmed October 21 target"}]'::jsonb);
-
-    INSERT INTO meeting_action_items (id, meeting_id, task, owner_name, due_date, status) VALUES
-    ('ai_1', 'meet_past_launch', 'Benchmark WebRTC audio quality on high packet-loss networks', 'David Kim', 'Tomorrow, 5:00 PM', 'in_progress'),
-    ('ai_2', 'meet_past_launch', 'Finalize marketing announcement copy and social banners', 'Sarah Chen', 'Friday, 12:00 PM', 'todo'),
-    ('ai_3', 'meet_past_launch', 'Deploy live database migrations and verify S3 storage bucket policies', 'Alex Morgan', 'Today, 8:00 PM', 'done');
-
-    -- Chat channels
-    INSERT INTO chat_rooms (id, name, is_direct, organization_id, created_by) VALUES
-    ('channel_general', 'general', FALSE, 'org_kollab', 'user_alex'),
-    ('channel_engineering', 'engineering', FALSE, 'org_kollab', 'user_alex'),
-    ('channel_design', 'design', FALSE, 'org_kollab', 'user_sarah'),
-    ('channel_product', 'product', FALSE, 'org_kollab', 'user_sarah'),
-    ('channel_random', 'random', FALSE, 'org_kollab', 'user_david');
-
-    INSERT INTO chat_messages (id, chat_room_id, sender_id, sender_name, sender_avatar, message_text) VALUES
-    ('msg_1', 'channel_general', 'user_alex', 'Alex Morgan', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', 'Welcome to Kollab! Excited to collaborate with everyone across meetings, chat, docs, and whiteboards.'),
-    ('msg_2', 'channel_general', 'user_sarah', 'Sarah Chen', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'The new UI palette and meeting controls feel super snappy. Loving the AI summaries!'),
-    ('msg_3', 'channel_engineering', 'user_david', 'David Kim', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'WebRTC peer connection and audio filter pass-through are live. Testing screen sharing now.');
-
-    -- Contacts
-    INSERT INTO contacts (id, user_id, contact_user_id, contact_name, contact_email, contact_avatar, phone) VALUES
-    ('cont_1', 'user_alex', 'user_sarah', 'Sarah Chen', 'sarah.chen@kollab.io', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', '+1 (555) 234-5678'),
-    ('cont_2', 'user_alex', 'user_david', 'David Kim', 'david.kim@kollab.io', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', '+1 (555) 345-6789'),
-    ('cont_3', 'user_alex', 'user_elena', 'Elena Rostova', 'elena.rostova@kollab.io', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', '+1 (555) 456-7890');
-
-    -- Documents
-    INSERT INTO documents (id, organization_id, author_id, title, content, template_type) VALUES
-    ('doc_q4_plan', 'org_kollab', 'user_alex', 'Q4 Product Roadmap & Vision', '# Q4 Product Roadmap & Vision\n\n## 1. Executive Summary\nKollab is the unified AI workspace combining video meetings, team chat, calendar, collaborative documents, whiteboards, and intelligent action item management.\n\n## 2. Core Pillars\n- **Crystal-Clear Meetings**: WebRTC HD video, noise cancellation, lighting enhancement.\n- **Autonomous Intelligence**: Summaries, transcripts, meeting preparation, and message rewriting.\n- **Integrated Collaboration**: Whiteboards, live docs, and instant files.', 'project_brief'),
-    ('doc_spec', 'org_kollab', 'user_sarah', 'WebRTC Media Pipeline Architecture', '# WebRTC Media Pipeline Architecture\n\n## Architecture Overview\n1. Participant Video Track -> Video Canvas Enhancement (low-light correction, blur)\n2. Participant Audio Track -> Web Audio Biquad/DynamicsCompressor (noise gate, cancellation)\n3. Recording Engine -> MediaRecorder API to WebM/MP4 -> Object Storage\n4. Realtime Speech -> Web Speech Recognition -> Realtime Subtitles + Translation.', 'general');
-
-    -- Whiteboards
-    INSERT INTO whiteboards (id, organization_id, author_id, title, canvas_data) VALUES
-    ('wb_arch', 'org_kollab', 'user_alex', 'Kollab Architecture Diagram', '[{"type":"rect","x":100,"y":120,"width":200,"height":90,"color":"#635BFF","label":"Next.js App Router"},{"type":"rect","x":380,"y":120,"width":200,"height":90,"color":"#10B981","label":"PostgreSQL + Drizzle"},{"type":"rect","x":660,"y":120,"width":200,"height":90,"color":"#3B82F6","label":"LiveKit WebRTC"},{"type":"arrow","fromX":300,"fromY":165,"toX":380,"toY":165},{"type":"arrow","fromX":580,"fromY":165,"toX":660,"toY":165}]'::jsonb);
-
-    -- Notifications
-    INSERT INTO notifications (id, user_id, type, title, message, link) VALUES
-    ('notif_1', 'user_alex', 'meeting_starting', 'Weekly Product Design Sync starts in 1 hour', 'Your scheduled meeting is coming up. Prejoin is available now.', '/meeting/meet_product_sync/prejoin'),
-    ('notif_2', 'user_alex', 'recording_ready', 'Recording Ready: Kollab 2.0 Launch Strategy', 'The recording and AI transcript for your launch meeting are ready for review.', '/recordings'),
-    ('notif_3', 'user_alex', 'chat_message', 'Sarah Chen sent a message in #general', 'The new UI palette and meeting controls feel super snappy!', '/chat');
-
-    -- Files
-    INSERT INTO files (id, organization_id, user_id, name, file_path, file_size, mime_type, file_category, download_url) VALUES
-    ('file_1', 'org_kollab', 'user_alex', 'Kollab_Brand_Guidelines_2026.pdf', '/files/kollab_brand.pdf', '3.4 MB', 'application/pdf', 'document', '#'),
-    ('file_2', 'org_kollab', 'user_sarah', 'Product_Architecture_Diagram.png', '/files/product_arch.png', '1.8 MB', 'image/png', 'image', '#'),
-    ('file_3', 'org_kollab', 'user_david', 'WebRTC_Latency_Benchmark_Report.csv', '/files/latency_report.csv', '480 KB', 'text/csv', 'document', '#');
-
-    -- Calendar events
-    INSERT INTO calendar_events (id, user_id, meeting_id, title, description, start_time, end_time, timezone) VALUES
-    ('cal_1', 'user_alex', 'meet_product_sync', 'Weekly Product Design Sync', 'Review Q4 roadmap and UX designs', NOW() + INTERVAL '1 hour', NOW() + INTERVAL '2 hours', 'America/New_York'),
-    ('cal_2', 'user_alex', 'meet_standup', 'Engineering Daily Standup', 'Daily sprint sync and PR reviews', NOW() + INTERVAL '4 hours', NOW() + INTERVAL '4 hours 30 minutes', 'America/New_York');
+    -- Standard Workspace Channels
+    INSERT INTO chat_rooms (id, name, is_direct, organization_id) VALUES
+    ('channel_general', 'general', FALSE, 'org_kollab'),
+    ('channel_announcements', 'announcements', FALSE, 'org_kollab'),
+    ('channel_engineering', 'engineering', FALSE, 'org_kollab'),
+    ('channel_random', 'random', FALSE, 'org_kollab')
+    ON CONFLICT DO NOTHING;
   `);
 }
 

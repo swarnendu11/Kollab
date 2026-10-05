@@ -31,11 +31,7 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>({
-    fullName: "Alex Morgan",
-    email: "alex.morgan@kollab.io",
-    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-  });
+  const [user, setUser] = useState<any>(null);
 
   const [upcomingMeetings, setUpcomingMeetings] = useState<any[]>([]);
   const [loadingMeetings, setLoadingMeetings] = useState(true);
@@ -127,7 +123,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight">
-              {getGreeting()}, {user.fullName?.split(" ")[0]} 👋
+              {getGreeting()}{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""} 👋
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Here is what is happening across your meetings, teamwork, and AI notes today.
@@ -380,7 +376,7 @@ export default function DashboardPage() {
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Users className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Host: {m.hostName || "Alex Morgan"}</span>
+                            <span>Host: {m.hostName || user?.fullName || "Workspace Host"}</span>
                           </span>
                         </div>
                       </div>
@@ -426,7 +422,7 @@ export default function DashboardPage() {
                   <Link href="/documents/doc_q4_plan" className="text-xs font-bold text-slate-900 hover:text-[#0D9488] transition-colors">
                     Document Updated
                   </Link>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Alex Morgan updated &ldquo;Q4 Product Roadmap & Vision&rdquo;</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{user?.fullName || "Team Member"} updated &ldquo;Q4 Product Roadmap & Vision&rdquo;</p>
                   <span className="text-[10px] text-slate-400">3 hours ago</span>
                 </div>
               </div>

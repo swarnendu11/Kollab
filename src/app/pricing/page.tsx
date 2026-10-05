@@ -4,6 +4,7 @@ import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KollabLogo } from "@/components/ui/kollab-logo";
 import { NavbarAuth } from "@/components/layout/NavbarAuth";
+import { Footer } from "@/components/layout/Footer";
 
 export default function PricingPage() {
   return (
@@ -90,6 +91,7 @@ export default function PricingPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

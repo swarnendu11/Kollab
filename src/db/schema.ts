@@ -2,9 +2,10 @@ import { pgTable, text, timestamp, boolean, integer, jsonb, uuid, index } from "
 
 // Users
 export const users = pgTable("users", {
-  id: text("id").primaryKey(), // clerk_id or synthetic local id
+  id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   fullName: text("full_name").notNull(),
+  passwordHash: text("password_hash"),
   avatarUrl: text("avatar_url"),
   role: text("role").default("member"),
   status: text("status").default("active"),

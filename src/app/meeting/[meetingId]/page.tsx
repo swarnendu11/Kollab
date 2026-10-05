@@ -95,50 +95,18 @@ export default function MeetingRoomPage() {
   const [speechRecognizer, setSpeechRecognizer] = useState<any>(null);
 
   // In-Meeting Chat
-  const [messages, setMessages] = useState<any[]>([
-    {
-      id: "1",
-      sender: "Sarah Chen",
-      text: "Hey everyone! Glad we have noise cancellation running today.",
-      time: "10:02 AM",
-    },
-    {
-      id: "2",
-      sender: "David Kim",
-      text: "Video feed looks crystal clear on 1080p!",
-      time: "10:03 AM",
-    },
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Participants
   const [participants, setParticipants] = useState<MeetingParticipant[]>([
     {
-      id: "user_alex",
-      name: "Alex Morgan (You)",
+      id: "local_user",
+      name: "You",
       role: "host",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      avatar: "",
       isMuted: false,
-      isCameraOff: false,
-      isHandRaised: false,
-      isSpeaking: true,
-    },
-    {
-      id: "user_sarah",
-      name: "Sarah Chen",
-      role: "co-host",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-      isMuted: false,
-      isCameraOff: false,
-      isHandRaised: false,
-      isSpeaking: false,
-    },
-    {
-      id: "user_david",
-      name: "David Kim",
-      role: "participant",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-      isMuted: true,
       isCameraOff: false,
       isHandRaised: false,
       isSpeaking: false,
@@ -149,6 +117,27 @@ export default function MeetingRoomPage() {
 
   // Initialize Meeting Details & Timer
   useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) {
+          setCurrentUser(d.user);
+          setParticipants((prev) =>
+            prev.map((p) =>
+              p.role === "host"
+                ? {
+                    ...p,
+                    id: d.user.id || "local_user",
+                    name: `${d.user.fullName} (You)`,
+                    avatar: d.user.avatarUrl || "",
+                  }
+                : p
+            )
+          );
+        }
+      })
+      .catch(() => {});
+
     fetch(`/api/meetings/${meetingId}`)
       .then((r) => r.json())
       .then((d) => {
@@ -432,7 +421,7 @@ export default function MeetingRoomPage() {
       ...messages,
       {
         id: `msg_${Date.now()}`,
-        sender: "Alex Morgan (You)",
+        sender: currentUser?.fullName ? `${currentUser.fullName} (You)` : "You",
         text: chatInput.trim(),
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
@@ -556,18 +545,20 @@ export default function MeetingRoomPage() {
                 />
                 <div className="absolute top-3 left-3 bg-slate-900/90 border border-slate-700 px-3 py-1 rounded-full text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                   <Monitor className="w-3.5 h-3.5" />
-                  <span>Alex Morgan is presenting their screen</span>
+                  <span>{currentUser?.fullName ? `${currentUser.fullName} (You)` : "You"} is presenting their screen</span>
                 </div>
               </div>
 
               {/* Side Participant Strip */}
               <div className="w-full lg:w-56 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto shrink-0">
-                {participants.map((p) => (
+                {participants.map((p) => {
+                  const isLocal = p.role === "host" || p.id === "local_user" || p.id === currentUser?.id;
+                  return (
                   <div
                     key={p.id}
                     className="w-40 lg:w-full aspect-video rounded-xl bg-slate-900 border border-slate-800 relative overflow-hidden shrink-0"
                   >
-                    {p.id === "user_alex" ? (
+                    {isLocal ? (
                       <video
                         ref={localVideoRef}
                         autoPlay
@@ -592,7 +583,7 @@ export default function MeetingRoomPage() {
                       <span className="truncate max-w-[80px]">{p.name}</span>
                     </div>
                   </div>
-                ))}
+                );})}
               </div>
             </div>
           ) : (
@@ -607,7 +598,7 @@ export default function MeetingRoomPage() {
               }`}
             >
               {participants.map((p) => {
-                const isLocal = p.id === "user_alex";
+                const isLocal = p.role === "host" || p.id === "local_user" || p.id === currentUser?.id;
                 const isSpeaking = isLocal ? isMicOn : p.isSpeaking;
 
                 return (
@@ -638,7 +629,7 @@ export default function MeetingRoomPage() {
                           <div className="flex flex-col items-center justify-center">
                             <Avatar className="w-20 h-20 text-xl font-bold">
                               <AvatarImage src={p.avatar} />
-                              <AvatarFallback>AM</AvatarFallback>
+                              <AvatarFallback className="bg-emerald-800 text-white font-bold">{p.name?.[0] || "U"}</AvatarFallback>
                             </Avatar>
                             <span className="text-xs font-semibold text-slate-400 mt-3">
                               Camera Off

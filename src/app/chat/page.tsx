@@ -37,6 +37,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [mobileChannelsOpen, setMobileChannelsOpen] = useState(false);
 
   // AI Drafting & Catch Up modal states
   const [aiDraftOpen, setAiDraftOpen] = useState(false);
@@ -49,7 +51,7 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load channels
+  // Load channels and contacts
   useEffect(() => {
     fetch("/api/chat")
       .then((r) => r.json())
@@ -57,6 +59,13 @@ export default function ChatPage() {
         if (d.channels && d.channels.length > 0) {
           setChannels(d.channels);
         }
+      })
+      .catch(() => {});
+
+    fetch("/api/contacts")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.contacts) setContacts(d.contacts);
       })
       .catch(() => {});
   }, []);
@@ -152,19 +161,29 @@ export default function ChatPage() {
   return (
     <AppShell>
       <div className="h-[calc(100vh-8rem)] bg-white rounded-3xl border border-slate-200/80 shadow-md flex overflow-hidden">
-        {/* Left: Channels & DMs List */}
-        <div className="w-64 border-r border-slate-200/80 bg-slate-50/60 flex flex-col justify-between shrink-0">
+        {/* Left: Channels & DMs List (Hidden on mobile unless toggled) */}
+        <div className={`w-64 border-r border-slate-200/80 bg-slate-50/60 flex flex-col justify-between shrink-0 ${mobileChannelsOpen ? "flex fixed inset-y-0 left-0 z-40 bg-white w-72 shadow-2xl" : "hidden md:flex"}`}>
           <div>
             <div className="p-4 border-b border-slate-200/80 flex items-center justify-between">
               <span className="font-extrabold text-sm text-slate-900 tracking-tight">Channels</span>
-              <button
-                onClick={handleCatchUp}
-                className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200/60 transition-colors"
-                title="Catch up with AI"
-              >
-                <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span>Catch up</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleCatchUp}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200/60 transition-colors"
+                  title="Catch up with AI"
+                >
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  <span>Catch up</span>
+                </button>
+                {mobileChannelsOpen && (
+                  <button
+                    onClick={() => setMobileChannelsOpen(false)}
+                    className="md:hidden text-xs text-slate-400 p-1 rounded-lg hover:bg-slate-100"
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="p-2 space-y-1">
@@ -173,7 +192,10 @@ export default function ChatPage() {
                 return (
                   <button
                     key={c.id}
-                    onClick={() => setActiveChannelId(c.id)}
+                    onClick={() => {
+                      setActiveChannelId(c.id);
+                      setMobileChannelsOpen(false);
+                    }}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
                       isActive
                         ? "bg-[#10B981] text-white font-semibold shadow-xs shadow-emerald-500/20"
@@ -190,18 +212,31 @@ export default function ChatPage() {
 
           {/* Direct Messages Quick View */}
           <div className="p-3 border-t border-slate-200/80">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-1">
-              Direct Messages
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-1">
+              <span>Direct Messages</span>
+              <Link href="/contacts" className="text-emerald-600 hover:underline">
+                View all
+              </Link>
             </div>
             <div className="space-y-1">
-              <div className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-slate-700 hover:bg-slate-100 cursor-pointer">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="truncate">Sarah Chen</span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-slate-700 hover:bg-slate-100 cursor-pointer">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="truncate">David Kim</span>
-              </div>
+              {contacts.length === 0 ? (
+                <Link
+                  href="/contacts"
+                  className="block p-2 rounded-lg text-xs text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 text-center border border-dashed border-slate-200"
+                >
+                  + Add Contacts
+                </Link>
+              ) : (
+                contacts.slice(0, 4).map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="truncate">{c.contactName}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -209,21 +244,30 @@ export default function ChatPage() {
         {/* Right: Message Stream */}
         <div className="flex-1 flex flex-col justify-between min-w-0 bg-white">
           {/* Channel Header */}
-          <div className="h-14 px-6 border-b border-slate-200 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <Hash className="w-5 h-5 text-slate-400" />
-              <h2 className="font-bold text-sm text-slate-900">{activeChannel.name}</h2>
-              <span className="text-xs text-slate-400">• Team workspace channel</span>
+          <div className="h-14 px-3 sm:px-6 border-b border-slate-200 flex items-center justify-between shrink-0 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => setMobileChannelsOpen(true)}
+                className="md:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 shrink-0"
+                title="Switch channel"
+              >
+                <Hash className="w-4 h-4 text-emerald-600" />
+              </button>
+              <Hash className="hidden md:inline-block w-5 h-5 text-slate-400 shrink-0" />
+              <h2 className="font-bold text-sm text-slate-900 truncate">{activeChannel.name}</h2>
+              <span className="hidden sm:inline text-xs text-slate-400 truncate">• Team workspace channel</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Link href="/meeting/new">
                 <Button
                   size="sm"
                   className="h-8 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold gap-1.5 shadow-none border border-emerald-200/60"
                 >
                   <Video className="w-3.5 h-3.5" />
-                  <span>Start Call in Channel</span>
+                  <span className="hidden sm:inline">Start Call in Channel</span>
+                  <span className="sm:hidden">Call</span>
                 </Button>
               </Link>
             </div>

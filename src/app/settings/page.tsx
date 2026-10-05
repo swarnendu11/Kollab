@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,10 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"profile" | "meeting" | "notifications" | "security">("meeting");
 
   // Profile states
-  const [fullName, setFullName] = useState("Alex Morgan");
-  const [email, setEmail] = useState("alex.morgan@kollab.io");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [userRole, setUserRole] = useState("Member");
 
   // Meeting states
   const [defaultMute, setDefaultMute] = useState(false);
@@ -33,10 +35,36 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setFullName(data.user.fullName || "");
+          setEmail(data.user.email || "");
+          setAvatarUrl(data.user.avatarUrl || "");
+          setUserRole(data.user.role || "Member");
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateProfile",
+          fullName,
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -193,32 +221,39 @@ export default function SettingsPage() {
               <h3 className="text-base font-bold text-slate-900">Personal Information</h3>
 
               <div className="flex items-center gap-4">
-                <Avatar className="w-16 h-16">
-                  <AvatarImage src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" />
-                  <AvatarFallback>AM</AvatarFallback>
+                <Avatar className="w-16 h-16 ring-2 ring-emerald-200">
+                  <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName || "User")}`} />
+                  <AvatarFallback className="bg-emerald-100 text-emerald-800 font-bold">
+                    {fullName?.[0] || "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <Button variant="outline" size="sm" type="button" className="text-xs h-8">
-                    Change Photo
-                  </Button>
+                  <div className="text-sm font-bold text-slate-900">{fullName || "User"}</div>
+                  <div className="text-xs text-slate-500">{email}</div>
+                  <div className="text-[10px] text-[#059669] font-bold mt-0.5">{userRole}</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
-                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-10 rounded-xl" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} disabled />
+                  <Input value={email} disabled className="h-10 rounded-xl bg-slate-50 text-slate-500" />
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex items-center justify-between pt-2">
+                {saved && (
+                  <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                    <Check className="w-4 h-4" /> Profile saved!
+                  </span>
+                )}
                 <Button
                   type="submit"
-                  className="h-10 px-6 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold shadow-sm shadow-emerald-500/20"
+                  className="ml-auto h-10 px-6 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold shadow-sm shadow-emerald-500/20"
                 >
                   Save Profile
                 </Button>
@@ -258,8 +293,8 @@ export default function SettingsPage() {
               </p>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 space-y-2">
-                <div className="font-semibold text-slate-900">Active Authentication Layer: Clerk & Session Tokens</div>
-                <div className="text-slate-500">Active session: Desktop Chrome on Windows 11</div>
+                <div className="font-semibold text-slate-900">Active Authentication Layer: Zero-Trust Cryptographic Session & Tokens</div>
+                <div className="text-slate-500">Active session: Authenticated User Session</div>
                 <div className="text-emerald-600 font-semibold flex items-center gap-1">
                   <Check className="w-4 h-4" /> End-to-End Media Token Signing Verified
                 </div>

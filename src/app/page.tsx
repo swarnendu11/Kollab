@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { KollabLogo } from "@/components/ui/kollab-logo";
 import { NavbarAuth } from "@/components/layout/NavbarAuth";
+import { Footer } from "@/components/layout/Footer";
 
 export default function LandingPage() {
   return (
@@ -139,12 +140,12 @@ export default function LandingPage() {
                 <div className="relative aspect-video rounded-2xl bg-slate-900 border-2 border-emerald-400 overflow-hidden shadow-lg shadow-emerald-500/25 group">
                   <img
                     src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500"
-                    alt="Alex Morgan"
+                    alt="Meeting Host"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute bottom-2 left-2 bg-[#081C15]/85 backdrop-blur px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-emerald-900">
                     <Mic className="w-3 h-3 text-emerald-400" />
-                    <span>Alex Morgan (Host)</span>
+                    <span>Meeting Host</span>
                   </div>
                   <div className="absolute top-2 right-2 bg-[#10B981] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
                     SPEAKING
@@ -154,31 +155,31 @@ export default function LandingPage() {
                 <div className="relative aspect-video rounded-2xl bg-slate-900 border border-emerald-950 overflow-hidden">
                   <img
                     src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500"
-                    alt="Sarah Chen"
+                    alt="Participant"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute bottom-2 left-2 bg-[#081C15]/85 backdrop-blur px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-emerald-900">
                     <Mic className="w-3 h-3 text-emerald-400" />
-                    <span>Sarah Chen</span>
+                    <span>Design Lead</span>
                   </div>
                 </div>
 
                 <div className="relative aspect-video rounded-2xl bg-slate-900 border border-emerald-950 overflow-hidden">
                   <img
                     src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500"
-                    alt="David Kim"
+                    alt="Participant"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute bottom-2 left-2 bg-[#081C15]/85 backdrop-blur px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-emerald-900">
                     <Mic className="w-3 h-3 text-slate-400" />
-                    <span>David Kim</span>
+                    <span>Engineering</span>
                   </div>
                 </div>
               </div>
 
               {/* Realtime Live Caption bar */}
               <div className="bg-[#061812]/90 border border-emerald-900/80 rounded-xl p-3 text-center text-xs sm:text-sm text-emerald-100">
-                <span className="text-[#34D399] font-bold mr-2">Alex Morgan:</span>
+                <span className="text-[#34D399] font-bold mr-2">Speaker:</span>
                 &ldquo;Target launch date is confirmed for October 21. Realtime WebRTC and AI meeting summaries are live!&rdquo;
               </div>
 
@@ -401,7 +402,7 @@ export default function LandingPage() {
               <div className="text-xs text-slate-500 mt-1">WebRTC Media Encryption</div>
             </div>
             <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-              <div className="text-2xl font-extrabold text-emerald-950">Clerk</div>
+              <div className="text-2xl font-extrabold text-emerald-950">Zero-Trust</div>
               <div className="text-xs text-slate-500 mt-1">Multi-factor Authentication</div>
             </div>
             <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-100">
@@ -439,18 +440,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#051811] text-emerald-400/80 py-12 border-t border-emerald-950 text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <KollabLogo size={24} />
-            <span className="font-bold text-white text-sm">KOLLAB</span>
-            <span className="text-emerald-500/80">• Meet. Collaborate. Get things done.</span>
-          </div>
-          <div>
-            &copy; {new Date().getFullYear()} Kollab, Inc. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

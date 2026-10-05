@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "Kollab | Meet. Collaborate. Get things done.",
   description:
     "AI-first unified communication and collaboration platform. Video meetings, team chat, calendar, documents, whiteboards, recordings, and intelligent assistant.",
+  openGraph: {
+    title: "Kollab | Meet. Collaborate. Get things done.",
+    description:
+      "AI-first unified communication and collaboration platform. Video meetings, team chat, calendar, documents, whiteboards, recordings, and intelligent assistant.",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

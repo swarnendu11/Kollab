@@ -14,11 +14,13 @@ import {
   Sparkles,
   X,
   ArrowRight,
+  Settings,
+  Paintbrush,
 } from "lucide-react";
 
 interface SearchResult {
   id: string;
-  category: "meeting" | "chat" | "document" | "recording" | "file" | "contact";
+  category: "meeting" | "chat" | "document" | "recording" | "file" | "contact" | "setting";
   title: string;
   subtitle: string;
   url: string;
@@ -51,68 +53,76 @@ export function GlobalSearchModal({
 
   const items: SearchResult[] = [
     {
-      id: "1",
+      id: "nav_1",
       category: "meeting",
-      title: "Weekly Product Design Sync",
-      subtitle: "Scheduled in 1 hour • Room: klb-sync-q4",
-      url: "/meeting/meet_product_sync/prejoin",
+      title: "Video Meetings",
+      subtitle: "Instant calls, scheduled meetings, and room codes",
+      url: "/meetings",
       icon: Video,
     },
     {
-      id: "2",
+      id: "nav_2",
       category: "meeting",
-      title: "Engineering Daily Standup",
-      subtitle: "Scheduled today • Room: klb-eng-daily",
-      url: "/meeting/meet_standup/prejoin",
+      title: "Start Instant Meeting",
+      subtitle: "Launch a WebRTC video meeting right now",
+      url: "/meeting/new",
       icon: Video,
     },
     {
-      id: "3",
+      id: "nav_3",
       category: "chat",
-      title: "#engineering channel",
-      subtitle: "Latest: WebRTC peer connection live",
+      title: "Team Chat & Channels",
+      subtitle: "#general, #announcements, #engineering, #random",
       url: "/chat",
       icon: MessageSquare,
     },
     {
-      id: "4",
-      category: "chat",
-      title: "#general channel",
-      subtitle: "Latest: Welcome to Kollab!",
-      url: "/chat",
-      icon: MessageSquare,
-    },
-    {
-      id: "5",
+      id: "nav_4",
       category: "document",
-      title: "Q4 Product Roadmap & Vision",
-      subtitle: "Project brief • Updated today",
-      url: "/documents/doc_q4_plan",
+      title: "Collaborative Documents",
+      subtitle: "Meeting notes, project briefs, and specifications",
+      url: "/documents",
       icon: FileText,
     },
     {
-      id: "6",
+      id: "nav_5",
+      category: "document",
+      title: "Whiteboards",
+      subtitle: "Interactive canvas for diagrams, sketches, and sticky notes",
+      url: "/whiteboards",
+      icon: Paintbrush,
+    },
+    {
+      id: "nav_6",
       category: "recording",
-      title: "Kollab 2.0 Launch Strategy - Session Recording",
-      subtitle: "Duration: 45:00 • AI transcript available",
+      title: "Cloud Recordings",
+      subtitle: "Video playback, AI summaries, and timestamped transcripts",
       url: "/recordings",
       icon: Film,
     },
     {
-      id: "7",
+      id: "nav_7",
       category: "contact",
-      title: "Sarah Chen",
-      subtitle: "Product Designer • sarah.chen@kollab.io",
+      title: "Contacts & Directory",
+      subtitle: "Workspace members and email directory",
       url: "/contacts",
       icon: Users,
     },
     {
-      id: "8",
+      id: "nav_8",
       category: "contact",
-      title: "David Kim",
-      subtitle: "Systems Engineer • david.kim@kollab.io",
-      url: "/contacts",
+      title: "Teams & Organization",
+      subtitle: "Manage workspace roles and member invitations",
+      url: "/teams",
       icon: Users,
+    },
+    {
+      id: "nav_9",
+      category: "setting",
+      title: "Settings & Audio/Video",
+      subtitle: "Microphone noise suppression, camera lighting, profile",
+      url: "/settings",
+      icon: Settings,
     },
   ];
 

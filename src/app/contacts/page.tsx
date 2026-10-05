@@ -199,7 +199,7 @@ export default function ContactsPage() {
                   Full Name
                 </label>
                 <Input
-                  placeholder="e.g. Sarah Chen"
+                  placeholder="e.g. Jane Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -212,7 +212,7 @@ export default function ContactsPage() {
                 </label>
                 <Input
                   type="email"
-                  placeholder="e.g. sarah.chen@kollab.io"
+                  placeholder="e.g. colleague@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

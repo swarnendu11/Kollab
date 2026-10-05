@@ -136,7 +136,7 @@ export default function DocumentsPage() {
                 </div>
 
                 <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <span>By {doc.authorName || "Alex Morgan"}</span>
+                  <span>By {doc.authorName || "Team Member"}</span>
                   <span className="font-semibold text-[#059669] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                     <span>Open</span>
                     <ArrowRight className="w-3.5 h-3.5" />

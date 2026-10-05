@@ -174,7 +174,7 @@ export default function MeetingsPage() {
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Host: {m.hostName || "Alex Morgan"}</span>
+                        <span>Host: {m.hostName || "Host"}</span>
                       </span>
                     </div>
                   </div>

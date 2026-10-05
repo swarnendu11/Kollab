@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     if (lowerPrompt.includes("unread") || lowerPrompt.includes("message") || lowerPrompt.includes("chat") || lowerPrompt.includes("catch up")) {
       const msgs = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt)).limit(5);
       return NextResponse.json({
-        response: `### Catch up with Kollab AI ⚡\n\nYou're all caught up! Kollab analyzed your recent messages:\n\n- **Key Decisions**: Launch timeline confirmed for October 21.\n- **Action Items**: David Kim is stress-testing the WebRTC pipeline; Sarah Chen is finalizing UX.\n- **Urgent Messages**: None flagged.\n\nLatest message from **${msgs[0]?.senderName || "Sarah"}**: "${msgs[0]?.messageText || "UI palette looks great"}"`,
+        response: `### Catch up with Kollab AI ⚡\n\nYou're all caught up! Kollab analyzed your recent messages:\n\n- **Key Decisions**: Media and audio pipelines verified and active.\n- **Action Items**: Review action items and confirm deployment targets.\n- **Urgent Messages**: None flagged.\n\nLatest update: "${msgs[0]?.messageText || "Workspace channels active and ready."}"`,
       });
     }
 
@@ -94,10 +94,10 @@ export async function POST(req: Request) {
         .where(eq(meetings.status, "scheduled"))
         .limit(1);
 
-      const title = nextMeeting[0]?.title || "Weekly Product Design Sync";
+      const title = nextMeeting[0]?.title || "Workspace Team Sync";
 
       return NextResponse.json({
-        response: `### Meeting Preparation: ${title} 📋\n\n**Executive Context:**\nThis meeting brings together engineering and design to align on Q4 deliverables, WebRTC latency benchmarks, and the AI notes pipeline.\n\n**Attendees:**\n- Alex Morgan (Host & Engineering Lead)\n- Sarah Chen (Product Designer)\n- David Kim (WebRTC / Systems)\n\n**Suggested Agenda:**\n1. Review sprint commitments (10m)\n2. Live demonstration of camera enhancement & noise suppression (15m)\n3. Sign-off on launch checklist (15m)\n\n**Key Questions to Ask:**\n- What is the current WebRTC packet-loss resilience limit?\n- Are background blur filters optimized for mobile GPUs?`,
+        response: `### Meeting Preparation: ${title} 📋\n\n**Executive Context:**\nThis meeting brings together your team to align on upcoming deliverables, review progress, and prioritize action items.\n\n**Attendees:**\n- ${user.fullName} (Host)\n- Workspace Team Members\n\n**Suggested Agenda:**\n1. Review sprint commitments and unblockers (10m)\n2. Live demonstration of new features (15m)\n3. Sign-off on target checklist (15m)\n\n**Key Questions to Ask:**\n- Are all team action items unblocked?\n- What are the priority goals for this week?`,
       });
     }
 

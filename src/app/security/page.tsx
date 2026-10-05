@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { KollabLogo } from "@/components/ui/kollab-logo";
 
 import { NavbarAuth } from "@/components/layout/NavbarAuth";
+import { Footer } from "@/components/layout/Footer";
 
 export default function SecurityPage() {
   return (
@@ -73,6 +74,7 @@ export default function SecurityPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

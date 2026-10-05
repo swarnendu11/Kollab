@@ -156,7 +156,7 @@ export default function FilesPage() {
                       {f.fileSize}
                     </td>
                     <td className="py-4 px-4 hidden md:table-cell text-slate-500">
-                      {f.userName || "Alex Morgan"}
+                      {f.userName || "Workspace Member"}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">

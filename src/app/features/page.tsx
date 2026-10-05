@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { KollabLogo } from "@/components/ui/kollab-logo";
 import { NavbarAuth } from "@/components/layout/NavbarAuth";
+import { Footer } from "@/components/layout/Footer";
 
 export default function FeaturesPage() {
   return (
@@ -88,11 +89,12 @@ export default function FeaturesPage() {
             <ShieldCheck className="w-8 h-8 text-[#10B981] mb-4" />
             <h3 className="text-lg font-bold">Enterprise Security</h3>
             <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-              Server-side authorization, signed media tokens, end-to-end meeting isolation, and Clerk authentication.
+              Server-side authorization, signed media tokens, end-to-end meeting isolation, and robust session encryption.
             </p>
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
