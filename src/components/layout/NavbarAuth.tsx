@@ -7,8 +7,6 @@ import { LogIn, UserPlus, LogOut, User as UserIcon, LayoutDashboard, ChevronDown
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { getSupabaseClient } from "@/lib/supabase/client";
-
 interface NavbarAuthProps {
   className?: string;
 }
@@ -34,12 +32,6 @@ export function NavbarAuth({ className }: NavbarAuthProps) {
   }, []);
 
   const handleSignOut = async () => {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-    }
     await fetch("/api/auth/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

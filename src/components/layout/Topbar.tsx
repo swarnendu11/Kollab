@@ -24,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GlobalSearchModal } from "@/components/ui/global-search";
-import { getSupabaseClient } from "@/lib/supabase/client";
 
 interface TopbarProps {
   onToggleMobileMenu?: () => void;
@@ -67,12 +66,6 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
   }, []);
 
   const handleSignOut = async () => {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-    }
     await fetch("/api/auth/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
