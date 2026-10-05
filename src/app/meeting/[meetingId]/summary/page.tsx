@@ -31,7 +31,7 @@ export default function MeetingSummaryPage() {
 
   const [loading, setLoading] = useState(true);
   const [meeting, setMeeting] = useState<any>({
-    title: "Weekly Product Design Sync",
+    title: `Meeting (${meetingId})`,
     joinCode: meetingId,
   });
   const [summaryData, setSummaryData] = useState<any>(null);

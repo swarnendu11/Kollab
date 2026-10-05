@@ -8,21 +8,29 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-[#10B981] text-white shadow-xs shadow-emerald-500/20",
+          "border-indigo-200/80 bg-indigo-50 text-indigo-700",
+        indigo:
+          "border-transparent bg-indigo-600 text-white shadow-xs",
         secondary:
-          "border-transparent bg-emerald-50 text-emerald-800 border-emerald-100",
+          "border-slate-200 bg-slate-100 text-slate-700",
         destructive:
-          "border-transparent bg-red-100 text-red-700 border-red-200",
+          "border-rose-200 bg-rose-50 text-rose-700",
         outline:
-          "text-emerald-900 border-emerald-200 bg-white",
+          "text-slate-800 border-slate-200 bg-white",
         success:
-          "border-transparent bg-emerald-100 text-emerald-800 border-emerald-200",
+          "border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold",
+        emerald:
+          "border-transparent bg-emerald-500 text-white shadow-xs",
+        coral:
+          "border-rose-200 bg-rose-50 text-rose-700",
+        live:
+          "border-transparent bg-rose-500 text-white shadow-xs shadow-rose-500/30 animate-pulse",
         warning:
-          "border-transparent bg-amber-100 text-amber-800 border-amber-200",
+          "border-amber-200 bg-amber-50 text-amber-800",
         cyan:
-          "border-transparent bg-teal-100 text-teal-800 border-teal-200",
+          "border-teal-200 bg-teal-50 text-teal-800",
         pink:
-          "border-transparent bg-emerald-200/60 text-emerald-950 border-emerald-300",
+          "border-pink-200 bg-pink-50 text-pink-700",
       },
     },
     defaultVariants: {

@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GlobalSearchModal } from "@/components/ui/global-search";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 interface TopbarProps {
   onToggleMobileMenu?: () => void;
@@ -66,6 +67,12 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
   }, []);
 
   const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+    }
     await fetch("/api/auth/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -110,7 +117,7 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200/80 hover:border-emerald-200 text-xs sm:text-sm text-slate-500 hover:text-slate-800 transition-all w-full max-w-[280px] sm:max-w-xs group shadow-2xs"
+            className="flex items-center gap-2 sm:gap-3 px-3.5 h-9 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200/80 hover:border-emerald-200 text-xs text-slate-500 hover:text-slate-800 transition-all w-full max-w-[280px] sm:max-w-xs group shadow-2xs shrink-0"
           >
             <Search className="w-4 h-4 text-slate-400 group-hover:text-[#10B981] transition-colors shrink-0" />
             <span className="truncate">Search meetings, chat, docs...</span>
@@ -127,9 +134,9 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
             <Button
               size="sm"
               onClick={() => setCreateOpen(!createOpen)}
-              className="bg-[#10B981] hover:bg-[#059669] text-white rounded-xl shadow-sm shadow-emerald-500/25 px-2.5 sm:px-3.5 h-9 font-semibold text-xs gap-1.5"
+              className="bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700 text-white rounded-xl shadow-xs px-3 h-9 font-semibold text-xs gap-1.5 inline-flex items-center justify-center shrink-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">New</span>
             </Button>
 
@@ -208,12 +215,12 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
             <button
               type="button"
               onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="relative p-2 rounded-xl text-slate-600 hover:text-emerald-950 hover:bg-emerald-50 transition-colors"
+              className="relative w-9 h-9 rounded-xl text-slate-600 hover:text-emerald-950 hover:bg-emerald-50 transition-colors inline-flex items-center justify-center shrink-0 border border-transparent hover:border-emerald-100"
               aria-label="Notifications"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-4 h-4 shrink-0" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-white" />
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-white" />
               )}
             </button>
 
@@ -285,18 +292,18 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
               <button
                 type="button"
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 p-1 pl-2 sm:pl-3 rounded-full hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 transition-all group"
+                className="h-9 inline-flex items-center gap-2 pl-2 sm:pl-3 pr-1.5 rounded-full hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 transition-all group shrink-0"
               >
-                <span className="hidden md:inline-block text-xs font-bold text-slate-800 max-w-[120px] truncate">
+                <span className="hidden md:inline-block text-xs font-bold text-slate-800 max-w-[120px] truncate leading-none">
                   {currentUser.fullName}
                 </span>
-                <Avatar className="w-7 h-7 sm:w-8 sm:h-8 ring-1 ring-[#10B981]/40">
+                <Avatar className="w-7 h-7 ring-1 ring-[#10B981]/40 shrink-0">
                   <AvatarImage src={currentUser.avatarUrl} />
                   <AvatarFallback className="text-xs bg-emerald-100 text-emerald-800 font-bold">
                     {currentUser.fullName?.[0] || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-colors mr-1" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0" />
               </button>
 
               {profileOpen && (
@@ -349,23 +356,23 @@ export function Topbar({ onToggleMobileMenu }: TopbarProps) {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <Link href="/sign-in">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Link href="/sign-in" className="inline-flex shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2.5 text-xs font-semibold text-slate-700"
+                  className="h-9 px-3 text-xs font-semibold text-slate-700 inline-flex items-center justify-center"
                 >
-                  <LogIn className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                  <LogIn className="w-3.5 h-3.5 mr-1 text-emerald-600 shrink-0" />
                   <span>Sign In</span>
                 </Button>
               </Link>
-              <Link href="/sign-up">
+              <Link href="/sign-up" className="inline-flex shrink-0">
                 <Button
                   size="sm"
-                  className="h-8 px-3 text-xs font-bold bg-[#10B981] hover:bg-[#059669] text-white"
+                  className="h-9 px-3.5 text-xs font-bold bg-[#10B981] hover:bg-[#059669] text-white inline-flex items-center justify-center shadow-xs"
                 >
-                  <UserPlus className="w-3.5 h-3.5 mr-1" />
+                  <UserPlus className="w-3.5 h-3.5 mr-1 shrink-0" />
                   <span>Sign Up</span>
                 </Button>
               </Link>

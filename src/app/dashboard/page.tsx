@@ -27,7 +27,12 @@ import {
   Loader2,
   Play,
   KeyRound,
+  Sliders,
+  QrCode,
+  Share2,
 } from "lucide-react";
+import { HardwareTestModal } from "@/components/ui/hardware-test-modal";
+import { ShareQrModal } from "@/components/ui/share-qr-modal";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -37,6 +42,15 @@ export default function DashboardPage() {
   const [loadingMeetings, setLoadingMeetings] = useState(true);
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [isStartingInstant, setIsStartingInstant] = useState(false);
+
+  // Live Activity state
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  // New Features: Hardware Diagnostic & QR Share modals
+  const [hardwareModalOpen, setHardwareModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedMeetingForShare, setSelectedMeetingForShare] = useState<any>(null);
 
   // Ask Kollab AI state
   const [aiPrompt, setAiPrompt] = useState("");
@@ -58,7 +72,36 @@ export default function DashboardPage() {
         setLoadingMeetings(false);
       })
       .catch(() => setLoadingMeetings(false));
+
+    // Initial and periodic Activity poll (every 4 seconds)
+    const fetchActivity = () => {
+      fetch("/api/activity")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.activities) setActivities(d.activities);
+          setLoadingActivities(false);
+        })
+        .catch(() => setLoadingActivities(false));
+    };
+    fetchActivity();
+    const activityTimer = setInterval(fetchActivity, 4000);
+
+    return () => {
+      clearInterval(activityTimer);
+    };
   }, []);
+
+  const formatRelativeTime = (isoString: string) => {
+    if (!isoString) return "just now";
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
+    if (diffSeconds < 10) return "just now";
+    if (diffSeconds < 60) return `${diffSeconds}s ago`;
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
 
   const startInstantMeeting = async () => {
     setIsStartingInstant(true);
@@ -120,9 +163,9 @@ export default function DashboardPage() {
     <AppShell>
       <div className="space-y-8">
         {/* Welcome Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-2">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {getGreeting()}{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""} 👋
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -130,99 +173,112 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Join with code quick form */}
-          <form onSubmit={handleJoinByCode} className="flex items-center gap-2 max-w-sm">
-            <div className="relative flex-1">
-              <KeyRound className="w-4 h-4 text-emerald-600 absolute left-3 top-3" />
-              <Input
-                placeholder="Enter meeting code (e.g. klb-sync-q4)"
-                value={joinCodeInput}
-                onChange={(e) => setJoinCodeInput(e.target.value)}
-                className="pl-9 h-10 text-xs rounded-xl"
-              />
-            </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Hardware Diagnostic Button */}
             <Button
-              type="submit"
-              disabled={!joinCodeInput.trim()}
-              className="h-10 px-4 rounded-xl bg-[#047857] hover:bg-[#065F46] text-white text-xs font-semibold shrink-0 shadow-sm"
+              variant="outline"
+              onClick={() => setHardwareModalOpen(true)}
+              className="h-10 px-3.5 rounded-xl border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-indigo-700 text-xs font-semibold gap-1.5 shadow-2xs"
             >
-              Join
+              <Sliders className="w-4 h-4 text-indigo-600" />
+              <span>Test Audio & Video</span>
             </Button>
-          </form>
+
+            {/* Join with code quick form */}
+            <form onSubmit={handleJoinByCode} className="flex items-center gap-2">
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                  placeholder="Enter meeting code"
+                  value={joinCodeInput}
+                  onChange={(e) => setJoinCodeInput(e.target.value)}
+                  className="pl-9 h-10 w-44 sm:w-56 text-xs rounded-xl border-slate-200"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={!joinCodeInput.trim()}
+                className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shrink-0 shadow-sm shadow-indigo-500/20"
+              >
+                Join
+              </Button>
+            </form>
+          </div>
         </div>
 
-        {/* Quick Action Tiles */}
+
+        {/* Quick Action Tiles - Vibrant 3-Color Palette */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
-          {/* Action 1: Start Meeting */}
+          {/* Action 1: Start Meeting (Electric Indigo) */}
           <button
             onClick={startInstantMeeting}
             disabled={isStartingInstant}
-            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-emerald-100 shadow-xs hover:shadow-md hover:border-[#10B981]/50 transition-all text-center group cursor-pointer"
+            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-indigo-400 hover:-translate-y-0.5 transition-all text-center group cursor-pointer"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#047857] via-[#059669] to-[#10B981] text-white flex items-center justify-center mb-3 shadow-md shadow-emerald-500/25 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center mb-3 shadow-md shadow-indigo-500/30 group-hover:scale-110 transition-transform">
               {isStartingInstant ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <Video className="w-6 h-6" />
               )}
             </div>
-            <span className="text-sm font-bold text-slate-900 group-hover:text-[#047857] transition-colors">
+            <span className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
               Start Meeting
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5">Instant room</span>
           </button>
 
-          {/* Action 2: Schedule Meeting */}
+          {/* Action 2: Schedule Meeting (Fresh Electric Emerald) */}
           <Link
             href="/calendar"
-            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-emerald-100 shadow-xs hover:shadow-md hover:border-[#0D9488]/50 transition-all text-center group"
+            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0D9488] to-[#14B8A6] text-white flex items-center justify-center mb-3 shadow-md shadow-teal-500/25 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#10B981] to-[#059669] text-white flex items-center justify-center mb-3 shadow-md shadow-emerald-500/30 group-hover:scale-110 transition-transform">
               <Calendar className="w-6 h-6" />
             </div>
-            <span className="text-sm font-bold text-slate-900 group-hover:text-[#0D9488] transition-colors">
+            <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
               Schedule Meeting
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5">Calendar & invites</span>
           </Link>
 
-          {/* Action 3: New Chat */}
+          {/* Action 3: New Chat (Warm Sunset Coral) */}
           <Link
             href="/chat"
-            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-emerald-100 shadow-xs hover:shadow-md hover:border-[#10B981]/50 transition-all text-center group"
+            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-rose-400 hover:-translate-y-0.5 transition-all text-center group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#10B981] to-[#34D399] text-white flex items-center justify-center mb-3 shadow-md shadow-emerald-500/25 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F43F5E] to-[#E11D48] text-white flex items-center justify-center mb-3 shadow-md shadow-rose-500/30 group-hover:scale-110 transition-transform">
               <MessageSquare className="w-6 h-6" />
             </div>
-            <span className="text-sm font-bold text-slate-900 group-hover:text-[#10B981] transition-colors">
+            <span className="text-sm font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
               Team Chat
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5">Channels & DMs</span>
           </Link>
 
-          {/* Action 4: New Document */}
+          {/* Action 4: New Document (Warm Amber) */}
           <Link
             href="/documents"
-            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-emerald-100 shadow-xs hover:shadow-md hover:border-[#047857]/50 transition-all text-center group"
+            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-amber-400 hover:-translate-y-0.5 transition-all text-center group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#047857] to-[#065F46] text-white flex items-center justify-center mb-3 shadow-md shadow-emerald-800/25 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center mb-3 shadow-md shadow-amber-500/30 group-hover:scale-110 transition-transform">
               <FileText className="w-6 h-6" />
             </div>
-            <span className="text-sm font-bold text-slate-900 group-hover:text-[#047857] transition-colors">
+            <span className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
               New Document
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5">Notes & specs</span>
           </Link>
 
-          {/* Action 5: New Whiteboard */}
+          {/* Action 5: New Whiteboard (Royal Violet) */}
           <Link
             href="/whiteboards"
-            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-emerald-100 shadow-xs hover:shadow-md hover:border-[#059669]/50 transition-all text-center group col-span-2 sm:col-span-1"
+            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-purple-400 hover:-translate-y-0.5 transition-all text-center group col-span-2 sm:col-span-1"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#059669] via-[#10B981] to-[#6EE7B7] text-white flex items-center justify-center mb-3 shadow-md shadow-emerald-500/25 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center mb-3 shadow-md shadow-purple-500/30 group-hover:scale-110 transition-transform">
               <Paintbrush className="w-6 h-6" />
             </div>
-            <span className="text-sm font-bold text-slate-900 group-hover:text-[#059669] transition-colors">
+            <span className="text-sm font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
               Whiteboard
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5">Live canvas</span>
@@ -382,9 +438,22 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      <Link href={`/meeting/${m.id}/prejoin`}>
-                        <Button className="h-10 px-5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs gap-1.5 shadow-sm shadow-emerald-500/20">
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedMeetingForShare(m);
+                          setShareModalOpen(true);
+                        }}
+                        className="h-10 px-3.5 rounded-xl border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-indigo-700 text-xs font-semibold gap-1.5 shadow-2xs shrink-0"
+                        title="Share Meeting & QR Code"
+                      >
+                        <QrCode className="w-4 h-4 text-indigo-600" />
+                        <span className="hidden sm:inline">QR Code</span>
+                      </Button>
+
+                      <Link href={`/meeting/${m.id}/prejoin`} className="inline-flex shrink-0">
+                        <Button className="h-10 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-sm shadow-indigo-500/20">
                           <Play className="w-3.5 h-3.5 fill-current" />
                           <span>Join Meeting</span>
                         </Button>
@@ -396,64 +465,116 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Recent Activity (1 Col) */}
+          {/* Recent Activity (1 Col) - Live Dynamic Data from API */}
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-emerald-950">Recent Workspace Activity</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-emerald-950">Live Workspace Activity</h3>
+                <span className="text-[10px] bg-emerald-100 text-[#047857] px-2 py-0.5 rounded-full font-bold">
+                  {activities.length} updates
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Auto-synced</span>
+              </span>
+            </div>
 
             <div className="bg-white rounded-3xl border border-emerald-100 p-5 divide-y divide-emerald-50 shadow-xs">
-              <div className="py-3 first:pt-0 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#059669] flex items-center justify-center shrink-0 mt-0.5">
-                  <Film className="w-4 h-4" />
+              {loadingActivities ? (
+                <div className="py-10 text-center text-slate-400 flex flex-col items-center justify-center gap-2 text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                  <span>Streaming live workspace events...</span>
                 </div>
-                <div>
-                  <Link href="/recordings" className="text-xs font-bold text-slate-900 hover:text-[#059669] transition-colors">
-                    Recording Ready
-                  </Link>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Kollab 2.0 Launch Strategy session with AI transcript</p>
-                  <span className="text-[10px] text-slate-400">2 days ago</span>
+              ) : activities.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  No activity recorded yet
                 </div>
-              </div>
+              ) : (
+                activities.map((act) => {
+                  const getIcon = () => {
+                    switch (act.type) {
+                      case "meeting":
+                        return <Video className="w-4 h-4" />;
+                      case "message":
+                        return <MessageSquare className="w-4 h-4" />;
+                      case "document":
+                        return <FileText className="w-4 h-4" />;
+                      case "recording":
+                        return <Film className="w-4 h-4" />;
+                      default:
+                        return <CheckCircle2 className="w-4 h-4" />;
+                    }
+                  };
 
-              <div className="py-3 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0D9488] flex items-center justify-center shrink-0 mt-0.5">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <Link href="/documents/doc_q4_plan" className="text-xs font-bold text-slate-900 hover:text-[#0D9488] transition-colors">
-                    Document Updated
-                  </Link>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{user?.fullName || "Team Member"} updated &ldquo;Q4 Product Roadmap & Vision&rdquo;</p>
-                  <span className="text-[10px] text-slate-400">3 hours ago</span>
-                </div>
-              </div>
+                  const getIconColors = () => {
+                    switch (act.type) {
+                      case "meeting":
+                        return "bg-indigo-50 text-indigo-600";
+                      case "message":
+                        return "bg-rose-50 text-rose-600";
+                      case "document":
+                        return "bg-amber-50 text-amber-600";
+                      case "recording":
+                        return "bg-emerald-50 text-emerald-600";
+                      default:
+                        return "bg-slate-50 text-slate-600";
+                    }
+                  };
 
-              <div className="py-3 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#10B981] flex items-center justify-center shrink-0 mt-0.5">
-                  <Paintbrush className="w-4 h-4" />
-                </div>
-                <div>
-                  <Link href="/whiteboards/wb_arch" className="text-xs font-bold text-slate-900 hover:text-[#10B981] transition-colors">
-                    Whiteboard Shared
-                  </Link>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Architecture diagram with WebRTC media pipeline</p>
-                  <span className="text-[10px] text-slate-400">Yesterday</span>
-                </div>
-              </div>
-
-              <div className="py-3 last:pb-0 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-[#047857] flex items-center justify-center shrink-0 mt-0.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900">Action Item Completed</div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Deploy live database migrations and verify S3 storage</p>
-                  <span className="text-[10px] text-slate-400">Today, 8:00 PM</span>
-                </div>
-              </div>
+                  return (
+                    <div key={act.id} className="py-3 first:pt-0 last:pb-0 flex items-start gap-3 group">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-2xs ${getIconColors()}`}>
+                        {getIcon()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <Link
+                            href={act.link}
+                            className="text-xs font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate"
+                          >
+                            {act.title}
+                          </Link>
+                          {act.badge && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                              {act.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{act.description}</p>
+                        <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                          <span className="font-semibold text-slate-700">{act.author}</span>
+                          <span>•</span>
+                          <span className="text-emerald-600 font-semibold">{formatRelativeTime(act.timestamp)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Hardware Diagnostic & QR Share Modals */}
+      <HardwareTestModal
+        isOpen={hardwareModalOpen}
+        onClose={() => setHardwareModalOpen(false)}
+      />
+
+      {selectedMeetingForShare && (
+        <ShareQrModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedMeetingForShare(null);
+          }}
+          meetingId={selectedMeetingForShare.id}
+          meetingTitle={selectedMeetingForShare.title}
+          joinCode={selectedMeetingForShare.joinCode}
+        />
+      )}
     </AppShell>
   );
 }

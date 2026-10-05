@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 export default function TeamsPage() {
-  const [team, setTeam] = useState<any>({ name: "Kollab Core Team", slug: "kollab-team" });
+  const [team, setTeam] = useState<any>({ name: "Kollab Workspace", slug: "kollab-workspace" });
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);

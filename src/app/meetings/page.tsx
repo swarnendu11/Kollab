@@ -16,21 +16,35 @@ import {
   Calendar,
   Sparkles,
   Loader2,
+  Sliders,
+  QrCode,
 } from "lucide-react";
+import { HardwareTestModal } from "@/components/ui/hardware-test-modal";
+import { ShareQrModal } from "@/components/ui/share-qr-modal";
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // New Features: Hardware Diagnostic & QR Share modals
+  const [hardwareModalOpen, setHardwareModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedMeetingForShare, setSelectedMeetingForShare] = useState<any>(null);
+
   useEffect(() => {
-    fetch("/api/meetings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.meetings) setMeetings(d.meetings);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    const fetchMeetings = () => {
+      fetch("/api/meetings")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.meetings) setMeetings(d.meetings);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    };
+    fetchMeetings();
+    const interval = setInterval(fetchMeetings, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const copyCode = (code: string) => {
@@ -52,16 +66,25 @@ export default function MeetingsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link href="/calendar">
-              <Button variant="outline" className="rounded-xl h-10 px-4 text-xs font-semibold gap-2 border-emerald-200/60 hover:bg-emerald-50/50">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              variant="outline"
+              onClick={() => setHardwareModalOpen(true)}
+              className="rounded-xl h-10 px-3.5 text-xs font-semibold gap-1.5 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-indigo-700 shadow-2xs shrink-0"
+            >
+              <Sliders className="w-4 h-4 text-indigo-600" />
+              <span>Test Audio & Video</span>
+            </Button>
+
+            <Link href="/calendar" className="inline-flex shrink-0">
+              <Button variant="outline" className="rounded-xl h-10 px-4 text-xs font-semibold gap-2 border-slate-200 hover:bg-slate-50">
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>Schedule Meeting</span>
               </Button>
             </Link>
 
-            <Link href="/meeting/new">
-              <Button className="rounded-xl h-10 px-4 text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-white gap-2 shadow-sm shadow-emerald-500/20">
+            <Link href="/meeting/new" className="inline-flex shrink-0">
+              <Button className="rounded-xl h-10 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-sm shadow-indigo-500/25">
                 <Video className="w-4 h-4" />
                 <span>Instant Meeting</span>
               </Button>
@@ -73,7 +96,7 @@ export default function MeetingsPage() {
         <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
           <Link
             href="/meetings"
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#10B981]/10 text-[#059669]"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60"
           >
             All Meetings ({meetings.length})
           </Link>
@@ -179,20 +202,34 @@ export default function MeetingsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedMeetingForShare(m);
+                        setShareModalOpen(true);
+                      }}
+                      className="h-9 px-3 rounded-xl border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-indigo-700 text-xs font-semibold gap-1.5 shadow-2xs shrink-0"
+                      title="Share Meeting & QR Code"
+                    >
+                      <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>QR Code</span>
+                    </Button>
+
                     {isPast ? (
-                      <Link href={`/meeting/${m.id}/summary`} className="w-full">
+                      <Link href={`/meeting/${m.id}/summary`} className="flex-1 inline-flex">
                         <Button
                           variant="outline"
-                          className="w-full text-xs font-semibold rounded-xl h-9 text-[#059669] border-emerald-200 hover:bg-emerald-50 gap-1.5"
+                          className="w-full text-xs font-semibold rounded-xl h-9 text-indigo-600 border-indigo-200 hover:bg-indigo-50 gap-1.5 shadow-2xs"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                           <span>View AI Summary & Notes</span>
                         </Button>
                       </Link>
                     ) : (
-                      <Link href={`/meeting/${m.id}/prejoin`} className="w-full">
-                        <Button className="w-full text-xs font-semibold rounded-xl h-9 bg-[#10B981] hover:bg-[#059669] text-white gap-1.5 shadow-sm shadow-emerald-500/20">
+                      <Link href={`/meeting/${m.id}/prejoin`} className="flex-1 inline-flex">
+                        <Button className="w-full text-xs font-semibold rounded-xl h-9 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 shadow-sm shadow-indigo-500/20">
                           <Play className="w-3.5 h-3.5 fill-current" />
                           <span>Join Prejoin Room</span>
                         </Button>
@@ -205,6 +242,25 @@ export default function MeetingsPage() {
           </div>
         )}
       </div>
+
+      {/* Hardware Diagnostic & QR Share Modals */}
+      <HardwareTestModal
+        isOpen={hardwareModalOpen}
+        onClose={() => setHardwareModalOpen(false)}
+      />
+
+      {selectedMeetingForShare && (
+        <ShareQrModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedMeetingForShare(null);
+          }}
+          meetingId={selectedMeetingForShare.id}
+          meetingTitle={selectedMeetingForShare.title}
+          joinCode={selectedMeetingForShare.joinCode}
+        />
+      )}
     </AppShell>
   );
 }

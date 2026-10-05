@@ -196,20 +196,20 @@ export function Sidebar({
                     className={cn(
                       "w-11 h-11 flex items-center justify-center rounded-xl transition-all relative",
                       isActive
-                        ? "bg-[#10B981]/15 text-[#047857] shadow-2xs"
-                        : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-950"
+                        ? "bg-indigo-50 text-indigo-600 border border-indigo-200/80 shadow-xs"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     )}
                   >
                     <Icon
                       className={cn(
                         "w-5 h-5 transition-colors",
                         isActive
-                          ? "text-[#10B981]"
-                          : "text-slate-500 group-hover:text-emerald-700"
+                          ? "text-indigo-600"
+                          : "text-slate-500 group-hover:text-indigo-600"
                       )}
                     />
                     {item.badge && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#10B981]" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
                     )}
                   </Link>
 
@@ -231,8 +231,8 @@ export function Sidebar({
                   className={cn(
                     "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group min-h-[42px]",
                     isActive
-                      ? "bg-[#10B981]/15 text-[#047857] font-bold"
-                      : "text-slate-600 hover:bg-emerald-50/60 hover:text-emerald-950"
+                      ? "bg-gradient-to-r from-indigo-50/90 via-emerald-50/30 to-white text-indigo-950 font-bold border-l-4 border-indigo-600 shadow-2xs"
+                      : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -240,15 +240,15 @@ export function Sidebar({
                       className={cn(
                         "w-4 h-4 shrink-0 transition-colors",
                         isActive
-                          ? "text-[#10B981]"
-                          : "text-slate-400 group-hover:text-emerald-700"
+                          ? "text-indigo-600"
+                          : "text-slate-400 group-hover:text-indigo-600"
                       )}
                     />
                     <span>{item.name}</span>
                   </div>
 
                   {item.badge && (
-                    <span className="text-xs bg-[#10B981] text-white px-2 py-0.5 rounded-full font-bold shadow-2xs">
+                    <span className="text-[11px] bg-gradient-to-r from-indigo-500 to-rose-500 text-white px-2 py-0.5 rounded-full font-bold shadow-2xs">
                       {item.badge}
                     </span>
                   )}
@@ -256,7 +256,7 @@ export function Sidebar({
 
                 {/* Subitems if active */}
                 {item.subItems && isActive && (
-                  <div className="ml-7 pl-3 border-l-2 border-emerald-200 my-1 space-y-1">
+                  <div className="ml-7 pl-3 border-l-2 border-indigo-200 my-1 space-y-1">
                     {item.subItems.map((sub) => {
                       const isSubActive = pathname === sub.href;
                       return (
@@ -267,8 +267,8 @@ export function Sidebar({
                           className={cn(
                             "block text-xs py-1.5 px-2 rounded-lg transition-colors",
                             isSubActive
-                              ? "text-[#047857] font-bold bg-emerald-50"
-                              : "text-slate-500 hover:text-emerald-950"
+                              ? "text-indigo-700 font-bold bg-indigo-50/80"
+                              : "text-slate-500 hover:text-slate-900"
                           )}
                         >
                           {sub.name}

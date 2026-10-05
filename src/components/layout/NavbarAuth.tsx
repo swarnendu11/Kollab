@@ -7,6 +7,8 @@ import { LogIn, UserPlus, LogOut, User as UserIcon, LayoutDashboard, ChevronDown
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+import { getSupabaseClient } from "@/lib/supabase/client";
+
 interface NavbarAuthProps {
   className?: string;
 }
@@ -32,6 +34,12 @@ export function NavbarAuth({ className }: NavbarAuthProps) {
   }, []);
 
   const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+    }
     await fetch("/api/auth/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,12 +54,12 @@ export function NavbarAuth({ className }: NavbarAuthProps) {
   if (currentUser) {
     return (
       <div className={`relative flex items-center gap-3 ${className || ""}`}>
-        <Link href="/dashboard" className="hidden sm:block">
+        <Link href="/dashboard" className="hidden sm:inline-flex shrink-0">
           <Button
             size="sm"
-            className="h-9 px-3.5 bg-emerald-50 text-[#047857] hover:bg-emerald-100 border border-emerald-200 font-bold rounded-xl text-xs gap-1.5"
+            className="h-9 px-3.5 bg-emerald-50 text-[#047857] hover:bg-emerald-100 border border-emerald-200 font-bold rounded-xl text-xs gap-1.5 inline-flex items-center justify-center shrink-0"
           >
-            <LayoutDashboard className="w-3.5 h-3.5" />
+            <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
             <span>Workspace</span>
           </Button>
         </Link>
@@ -60,16 +68,16 @@ export function NavbarAuth({ className }: NavbarAuthProps) {
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2 p-1.5 pl-3 rounded-full hover:bg-emerald-50 transition-colors border border-emerald-200/90 shadow-2xs group"
+            className="h-9 inline-flex items-center gap-2 pl-3 pr-1.5 rounded-full hover:bg-emerald-50 transition-colors border border-emerald-200/90 shadow-2xs group shrink-0"
           >
-            <span className="text-xs font-bold text-emerald-950 max-w-[120px] truncate">
+            <span className="text-xs font-bold text-emerald-950 max-w-[120px] truncate leading-none">
               {currentUser.fullName}
             </span>
-            <Avatar className="w-8 h-8 ring-2 ring-[#10B981]/30">
+            <Avatar className="w-7 h-7 ring-2 ring-[#10B981]/30 shrink-0">
               <AvatarImage src={currentUser.avatarUrl} />
-              <AvatarFallback>{currentUser.fullName?.[0] || "U"}</AvatarFallback>
+              <AvatarFallback className="text-xs font-bold">{currentUser.fullName?.[0] || "U"}</AvatarFallback>
             </Avatar>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-colors mr-1" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0" />
           </button>
 
           {menuOpen && (
@@ -120,19 +128,19 @@ export function NavbarAuth({ className }: NavbarAuthProps) {
 
   // If user is unauthenticated: SHOW Sign In and Sign Up buttons!
   return (
-    <div className={`flex items-center gap-2.5 ${className || ""}`}>
-      <Link href="/sign-in">
+    <div className={`flex items-center gap-2 ${className || ""}`}>
+      <Link href="/sign-in" className="inline-flex shrink-0">
         <Button
           variant="ghost"
-          className="font-semibold text-slate-700 hover:text-emerald-950 hover:bg-emerald-50 rounded-xl px-3.5 h-9 text-xs flex items-center gap-1.5"
+          className="font-semibold text-slate-700 hover:text-emerald-950 hover:bg-emerald-50 rounded-xl px-3.5 h-9 text-xs inline-flex items-center justify-center gap-1.5 shrink-0"
         >
-          <LogIn className="w-3.5 h-3.5 text-emerald-600" />
+          <LogIn className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
           <span>Sign In</span>
         </Button>
       </Link>
-      <Link href="/sign-up">
-        <Button className="bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-600/25 rounded-xl px-4 h-9 text-xs font-bold gap-1.5 flex items-center">
-          <UserPlus className="w-3.5 h-3.5" />
+      <Link href="/sign-up" className="inline-flex shrink-0">
+        <Button className="bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-600/25 rounded-xl px-4 h-9 text-xs font-bold gap-1.5 inline-flex items-center justify-center shrink-0">
+          <UserPlus className="w-3.5 h-3.5 shrink-0" />
           <span>Sign Up</span>
         </Button>
       </Link>

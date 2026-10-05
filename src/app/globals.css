@@ -4,65 +4,65 @@
 
 @layer base {
   :root {
-    --background: 150 25% 98%;
-    --foreground: 160 45% 9%;
+    --background: 210 40% 98%; /* Soft slate-50 #F8FAFC */
+    --foreground: 222 47% 11%; /* #0F172A */
 
     --card: 0 0% 100%;
-    --card-foreground: 160 45% 9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 45% 9%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 160 84% 39%; /* Emerald #10B981 */
-    --primary-foreground: 150 25% 98%;
+    --primary: 243 75% 59%; /* Electric Indigo #4F46E5 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 20% 96%;
-    --secondary-foreground: 160 40% 10%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 150 15% 95%;
-    --muted-foreground: 160 15% 45%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 150 25% 95%;
-    --accent-foreground: 160 40% 10%;
+    --accent: 160 84% 39%; /* Fresh Electric Emerald #10B981 */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 150 25% 98%;
+    --destructive: 350 89% 60%; /* Warm Sunset Coral #F43F5E */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 150 20% 91%;
-    --input: 150 20% 91%;
-    --ring: 160 84% 39%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 243 75% 59%;
 
     --radius: 0.85rem;
   }
 
   .dark {
-    --background: 160 45% 6%;
-    --foreground: 150 25% 98%;
+    --background: 222 47% 7%; /* #0B0F19 */
+    --foreground: 210 40% 98%;
 
-    --card: 160 45% 8%;
-    --card-foreground: 150 25% 98%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 160 45% 8%;
-    --popover-foreground: 150 25% 98%;
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 160 84% 39%;
-    --primary-foreground: 150 25% 98%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 30% 14%;
-    --secondary-foreground: 150 25% 98%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 160 30% 14%;
-    --muted-foreground: 150 15% 65%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 160 30% 14%;
-    --accent-foreground: 150 25% 98%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 150 25% 98%;
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 160 30% 15%;
-    --input: 160 30% 15%;
-    --ring: 160 84% 39%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 243 75% 59%;
   }
 }
 
@@ -71,7 +71,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-[#F4FAF6] text-[#081C15] antialiased selection:bg-[#10B981]/25 selection:text-[#047857];
+    @apply bg-[#F8FAFC] text-[#0F172A] antialiased selection:bg-indigo-500/20 selection:text-indigo-700;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -85,31 +85,31 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #a7f3d0;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #10b981;
+  background: #6366f1;
 }
 
-/* Glassmorphism accents with emerald tint */
+/* Glassmorphism accents with multi-color tint */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(209, 250, 229, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .glass-panel-dark {
-  background: rgba(8, 28, 21, 0.88);
+  background: rgba(15, 23, 42, 0.9);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 /* Glowing borders */
 .glow-primary {
-  box-shadow: 0 0 25px -4px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 25px -4px rgba(79, 70, 229, 0.35);
 }
 
 .glow-active-speaker {
