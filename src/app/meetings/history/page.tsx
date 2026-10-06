@@ -1,25 +1,36 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ui/error-state";
 import { Video, Clock, Users, Sparkles, Loader2 } from "lucide-react";
+import { fetchJsonWithTimeout } from "@/lib/client-fetch";
 
 export default function MeetingHistoryPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadHistory = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchJsonWithTimeout<{ meetings: any[] }>("/api/meetings?status=ended");
+      setMeetings(data.meetings || []);
+    } catch (err: any) {
+      console.error("[MeetingHistory] Load error:", err);
+      setError(err?.message || "Failed to load past meeting history.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("/api/meetings?status=ended")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.meetings) setMeetings(d.meetings);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    loadHistory();
+  }, [loadHistory]);
 
   return (
     <AppShell>
@@ -54,10 +65,17 @@ export default function MeetingHistoryPage() {
           </Link>
         </div>
 
+        {/* States */}
         {loading ? (
           <div className="h-40 flex items-center justify-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Unable to load meeting history"
+            message={error}
+            onRetry={loadHistory}
+          />
         ) : meetings.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80">
             <Video className="w-10 h-10 text-slate-300 mx-auto mb-3" />

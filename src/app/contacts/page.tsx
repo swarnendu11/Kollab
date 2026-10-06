@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   Users,
   Plus,
   MessageSquare,
   Video,
   Calendar,
-  Phone,
   Search,
   Check,
   Loader2,
@@ -20,12 +20,16 @@ import {
   UserPlus,
   Trash2,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
+import { fetchJsonWithTimeout } from "@/lib/client-fetch";
 
 export default function ContactsPage() {
   const router = useRouter();
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [dbSearchResults, setDbSearchResults] = useState<any[]>([]);
   const [searchingDb, setSearchingDb] = useState(false);
@@ -38,6 +42,7 @@ export default function ContactsPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   // Schedule Meeting Form State
   const [meetingTitle, setMeetingTitle] = useState("");
@@ -45,21 +50,38 @@ export default function ContactsPage() {
   const [meetingTime, setMeetingTime] = useState("10:00");
   const [meetingDuration, setMeetingDuration] = useState("30");
   const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   // Load existing contacts
-  const fetchContacts = () => {
-    fetch("/api/contacts")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.contacts) setContacts(d.contacts);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  };
+  const fetchContacts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchJsonWithTimeout<{ contacts: any[] }>("/api/contacts");
+      setContacts(data.contacts || []);
+    } catch (err: any) {
+      console.error("[Contacts] Load error:", err);
+      setError(err?.message || "Failed to load contacts directory.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchContacts();
-  }, []);
+  }, [fetchContacts]);
+
+  // Modal Escape key handling
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (addModalOpen) setAddModalOpen(false);
+        if (scheduleModalOpen) setScheduleModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [addModalOpen, scheduleModalOpen]);
 
   // Live database search for users by email or username
   useEffect(() => {
@@ -70,14 +92,17 @@ export default function ContactsPage() {
     }
 
     setSearchingDb(true);
-    const timeout = setTimeout(() => {
-      fetch(`/api/contacts/search?q=${encodeURIComponent(search.trim())}`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.users) setDbSearchResults(d.users);
-          setSearchingDb(false);
-        })
-        .catch(() => setSearchingDb(false));
+    const timeout = setTimeout(async () => {
+      try {
+        const d = await fetchJsonWithTimeout<{ users: any[] }>(
+          `/api/contacts/search?q=${encodeURIComponent(search.trim())}`
+        );
+        setDbSearchResults(d.users || []);
+      } catch {
+        setDbSearchResults([]);
+      } finally {
+        setSearchingDb(false);
+      }
     }, 250);
 
     return () => clearTimeout(timeout);
@@ -85,8 +110,9 @@ export default function ContactsPage() {
 
   // Save a found user directly to contacts
   const handleSaveFoundUser = async (user: any) => {
+    setActionError(null);
     try {
-      const res = await fetch("/api/contacts", {
+      const data = await fetchJsonWithTimeout<{ contact: any }>("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -95,7 +121,6 @@ export default function ContactsPage() {
           contactUserId: user.id,
         }),
       });
-      const data = await res.json();
       if (data.contact) {
         setContacts((prev) => {
           if (prev.some((c) => c.id === data.contact.id)) return prev;
@@ -105,8 +130,9 @@ export default function ContactsPage() {
           prev.map((u) => (u.id === user.id ? { ...u, isSaved: true } : u))
         );
       }
-    } catch (e) {
-      console.error("Failed to save contact:", e);
+    } catch (e: any) {
+      console.error("[Contacts] Save user error:", e);
+      setActionError(e?.message || "Failed to save contact.");
     }
   };
 
@@ -116,8 +142,9 @@ export default function ContactsPage() {
     if (!name.trim() || !email.trim()) return;
 
     setIsSubmitting(true);
+    setAddError(null);
     try {
-      const res = await fetch("/api/contacts", {
+      const data = await fetchJsonWithTimeout<{ contact: any }>("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,7 +153,6 @@ export default function ContactsPage() {
           phone: phone.trim(),
         }),
       });
-      const data = await res.json();
       if (data.contact) {
         setContacts((prev) => [data.contact, ...prev]);
       }
@@ -134,8 +160,9 @@ export default function ContactsPage() {
       setName("");
       setEmail("");
       setPhone("");
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("[Contacts] Add error:", e);
+      setAddError(e?.message || "Failed to save contact.");
     } finally {
       setIsSubmitting(false);
     }
@@ -143,11 +170,14 @@ export default function ContactsPage() {
 
   // Delete contact
   const handleDeleteContact = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this contact?")) return;
+    setActionError(null);
     try {
-      await fetch(`/api/contacts?id=${id}`, { method: "DELETE" });
+      await fetchJsonWithTimeout(`/api/contacts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       setContacts((prev) => prev.filter((c) => c.id !== id));
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("[Contacts] Delete error:", e);
+      setActionError(e?.message || "Failed to delete contact.");
     }
   };
 
@@ -155,7 +185,7 @@ export default function ContactsPage() {
   const handleStartChat = async (contact: any) => {
     try {
       if (contact.contactUserId) {
-        const res = await fetch("/api/chat", {
+        const data = await fetchJsonWithTimeout<{ channel: any }>("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -164,7 +194,6 @@ export default function ContactsPage() {
             name: contact.contactName,
           }),
         });
-        const data = await res.json();
         if (data.channel?.id) {
           router.push(`/chat?channel=${data.channel.id}`);
           return;
@@ -179,7 +208,7 @@ export default function ContactsPage() {
   // Start instant 1:1 video call
   const handleStartCall = async (contact: any) => {
     try {
-      const res = await fetch("/api/meetings", {
+      const data = await fetchJsonWithTimeout<{ meeting: any }>("/api/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -187,9 +216,7 @@ export default function ContactsPage() {
           isInstant: true,
         }),
       });
-      const data = await res.json();
       if (data.meeting?.id) {
-        // Also send invite link in DM chat if contact has registered user id
         if (contact.contactUserId) {
           fetch("/api/chat", {
             method: "POST",
@@ -211,7 +238,8 @@ export default function ContactsPage() {
                   }),
                 });
               }
-            });
+            })
+            .catch(() => {});
         }
         router.push(`/meeting/${data.meeting.id}/prejoin`);
       } else {
@@ -226,6 +254,7 @@ export default function ContactsPage() {
   const handleOpenSchedule = (contact: any) => {
     setSelectedContactForSchedule(contact);
     setMeetingTitle(`Meeting with ${contact.contactName}`);
+    setScheduleError(null);
     setScheduleModalOpen(true);
   };
 
@@ -234,12 +263,13 @@ export default function ContactsPage() {
     if (!meetingTitle.trim() || !selectedContactForSchedule) return;
 
     setIsScheduling(true);
+    setScheduleError(null);
     try {
       const startTime = new Date(`${meetingDate}T${meetingTime}:00`);
       const endTime = new Date(startTime.getTime() + parseInt(meetingDuration) * 60000);
 
       // Create meeting
-      const meetRes = await fetch("/api/meetings", {
+      const meetData = await fetchJsonWithTimeout<{ meeting: any }>("/api/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -249,10 +279,9 @@ export default function ContactsPage() {
           scheduledEnd: endTime,
         }),
       });
-      const meetData = await meetRes.json();
 
       // Create calendar event
-      await fetch("/api/calendar", {
+      await fetchJsonWithTimeout("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -286,14 +315,16 @@ export default function ContactsPage() {
                 }),
               });
             }
-          });
+          })
+          .catch(() => {});
       }
 
       setScheduleModalOpen(false);
       setSelectedContactForSchedule(null);
       router.push("/calendar");
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("[Contacts] Schedule error:", e);
+      setScheduleError(e?.message || "Failed to schedule meeting.");
     } finally {
       setIsScheduling(false);
     }
@@ -301,8 +332,8 @@ export default function ContactsPage() {
 
   const filteredContacts = contacts.filter(
     (c) =>
-      c.contactName.toLowerCase().includes(search.toLowerCase()) ||
-      c.contactEmail.toLowerCase().includes(search.toLowerCase())
+      c.contactName?.toLowerCase().includes(search.toLowerCase()) ||
+      c.contactEmail?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -321,7 +352,10 @@ export default function ContactsPage() {
 
           <div className="flex items-center gap-3">
             <Button
-              onClick={() => setAddModalOpen(true)}
+              onClick={() => {
+                setAddError(null);
+                setAddModalOpen(true);
+              }}
               className="rounded-xl h-10 px-4 text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-white gap-2 shadow-sm shadow-emerald-500/20"
             >
               <Plus className="w-4 h-4" />
@@ -329,6 +363,18 @@ export default function ContactsPage() {
             </Button>
           </div>
         </div>
+
+        {actionError && (
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{actionError}</span>
+            </div>
+            <button onClick={() => setActionError(null)} className="text-rose-400 hover:text-rose-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Search Bar with Live Database Directory Lookup */}
         <div className="space-y-3">
@@ -365,7 +411,7 @@ export default function ContactsPage() {
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar className="w-8 h-8 shrink-0">
                         <AvatarImage src={user.avatarUrl} />
-                        <AvatarFallback>{user.fullName[0]}</AvatarFallback>
+                        <AvatarFallback>{user.fullName?.[0] || "U"}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-slate-900 truncate">{user.fullName}</p>
@@ -395,11 +441,17 @@ export default function ContactsPage() {
           )}
         </div>
 
-        {/* Contacts Grid */}
+        {/* Contacts Content States: Loading | Error | Success */}
         {loading ? (
           <div className="h-48 flex items-center justify-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Unable to load contacts"
+            message={error}
+            onRetry={fetchContacts}
+          />
         ) : filteredContacts.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
             <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -421,7 +473,7 @@ export default function ContactsPage() {
                       <div className="relative">
                         <Avatar className="w-12 h-12">
                           <AvatarImage src={c.contactAvatar} />
-                          <AvatarFallback>{c.contactName[0]}</AvatarFallback>
+                          <AvatarFallback>{c.contactName?.[0] || "U"}</AvatarFallback>
                         </Avatar>
                         <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-500/20" />
                       </div>
@@ -443,6 +495,7 @@ export default function ContactsPage() {
                       onClick={() => handleDeleteContact(c.id)}
                       className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-50"
                       title="Remove Contact"
+                      aria-label="Remove contact"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -491,7 +544,12 @@ export default function ContactsPage() {
 
       {/* Add Contact Modal */}
       {addModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setAddModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -502,11 +560,19 @@ export default function ContactsPage() {
               </div>
               <button
                 onClick={() => setAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 p-1"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {addError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>{addError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleAddContact} className="space-y-4">
               <div>
@@ -518,6 +584,7 @@ export default function ContactsPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  autoFocus
                 />
               </div>
 
@@ -564,7 +631,12 @@ export default function ContactsPage() {
 
       {/* Schedule Meeting with Contact Modal */}
       {scheduleModalOpen && selectedContactForSchedule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setScheduleModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -575,7 +647,8 @@ export default function ContactsPage() {
               </div>
               <button
                 onClick={() => setScheduleModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 p-1"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -584,13 +657,20 @@ export default function ContactsPage() {
             <div className="p-3 bg-slate-50 rounded-xl flex items-center gap-3 border border-slate-100">
               <Avatar className="w-9 h-9">
                 <AvatarImage src={selectedContactForSchedule.contactAvatar} />
-                <AvatarFallback>{selectedContactForSchedule.contactName[0]}</AvatarFallback>
+                <AvatarFallback>{selectedContactForSchedule.contactName?.[0] || "U"}</AvatarFallback>
               </Avatar>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-900">{selectedContactForSchedule.contactName}</p>
                 <p className="text-[11px] text-slate-500 truncate">{selectedContactForSchedule.contactEmail}</p>
               </div>
             </div>
+
+            {scheduleError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>{scheduleError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleScheduleSubmit} className="space-y-3.5">
               <div>
@@ -601,6 +681,7 @@ export default function ContactsPage() {
                   value={meetingTitle}
                   onChange={(e) => setMeetingTitle(e.target.value)}
                   required
+                  autoFocus
                 />
               </div>
 

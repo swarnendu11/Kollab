@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   Video,
-  Plus,
   Clock,
   Users,
   Copy,
@@ -21,31 +21,42 @@ import {
 } from "lucide-react";
 import { HardwareTestModal } from "@/components/ui/hardware-test-modal";
 import { ShareQrModal } from "@/components/ui/share-qr-modal";
+import { fetchJsonWithTimeout } from "@/lib/client-fetch";
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // New Features: Hardware Diagnostic & QR Share modals
+  // Diagnostic & QR Share modals
   const [hardwareModalOpen, setHardwareModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedMeetingForShare, setSelectedMeetingForShare] = useState<any>(null);
 
-  useEffect(() => {
-    const fetchMeetings = () => {
-      fetch("/api/meetings")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.meetings) setMeetings(d.meetings);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    };
-    fetchMeetings();
-    const interval = setInterval(fetchMeetings, 3000);
-    return () => clearInterval(interval);
+  const loadMeetings = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    try {
+      const data = await fetchJsonWithTimeout<{ meetings: any[] }>("/api/meetings");
+      setMeetings(data.meetings || []);
+      setError(null);
+    } catch (err: any) {
+      console.error("[Meetings] Load error:", err);
+      if (isInitial) {
+        setError(err?.message || "Failed to load meetings.");
+      }
+    } finally {
+      if (isInitial) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadMeetings(true);
+    const interval = setInterval(() => {
+      loadMeetings(false);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [loadMeetings]);
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -114,11 +125,17 @@ export default function MeetingsPage() {
           </Link>
         </div>
 
-        {/* Meeting List */}
+        {/* Meeting List & States */}
         {loading ? (
           <div className="h-48 bg-white rounded-2xl border border-slate-200/80 flex items-center justify-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Unable to load meetings"
+            message={error}
+            onRetry={() => loadMeetings(true)}
+          />
         ) : meetings.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80">
             <Video className="w-10 h-10 text-slate-300 mx-auto mb-3" />

@@ -1,30 +1,41 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ui/error-state";
 import { Video, Clock, Users, Play, Calendar, Loader2 } from "lucide-react";
+import { fetchJsonWithTimeout } from "@/lib/client-fetch";
 
 export default function UpcomingMeetingsPage() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadUpcoming = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchJsonWithTimeout<{ meetings: any[] }>("/api/meetings?status=scheduled");
+      setMeetings(data.meetings || []);
+    } catch (err: any) {
+      console.error("[UpcomingMeetings] Load error:", err);
+      setError(err?.message || "Failed to load scheduled meetings.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("/api/meetings?status=scheduled")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.meetings) setMeetings(d.meetings);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    loadUpcoming();
+  }, [loadUpcoming]);
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               Upcoming Meetings
@@ -62,10 +73,17 @@ export default function UpcomingMeetingsPage() {
           </Link>
         </div>
 
+        {/* States */}
         {loading ? (
           <div className="h-40 flex items-center justify-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Unable to load upcoming meetings"
+            message={error}
+            onRetry={loadUpcoming}
+          />
         ) : meetings.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80">
             <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -88,11 +106,11 @@ export default function UpcomingMeetingsPage() {
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-500">
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{new Date(m.scheduledStart).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                      <span>{m.scheduledStart ? new Date(m.scheduledStart).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Scheduled"}</span>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{m.hostName}</span>
+                      <span>{m.hostName || "Host"}</span>
                     </span>
                   </div>
                 </div>

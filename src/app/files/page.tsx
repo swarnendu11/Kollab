@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,57 +16,98 @@ import {
   Check,
   Loader2,
   X,
+  AlertTriangle,
+  RefreshCw,
+  FileUp,
 } from "lucide-react";
+import { fetchJsonWithTimeout, fetchWithTimeout } from "@/lib/client-fetch";
 
 export default function FilesPage() {
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
+  // Upload Modal State
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [fileName, setFileName] = useState("");
-  const [fileCategory, setFileCategory] = useState<"document" | "image" | "video">("document");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadFiles = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchJsonWithTimeout<{ files: any[] }>("/api/files");
+      setFiles(data.files || []);
+    } catch (err: any) {
+      console.error("[KOLLAB FILES LOAD]", err);
+      setError(err?.message || "Failed to load files from storage.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/files")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.files) setFiles(d.files);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadFiles();
   }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setUploadError(null);
+    }
+  };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fileName.trim()) return;
+    if (!selectedFile) {
+      setUploadError("Please select a file to upload.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
 
     try {
-      const res = await fetch("/api/files", {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const res = await fetchWithTimeout("/api/files", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fileName.trim(),
-          fileCategory,
-          fileSize: "2.4 MB",
-        }),
-      });
+        body: formData,
+      }, 30000);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || `Upload failed with status ${res.status}`);
+      }
+
       const data = await res.json();
       if (data.file) {
         setFiles((prev) => [data.file, ...prev]);
       }
+
       setUploadModalOpen(false);
-      setFileName("");
-    } catch (e) {
-      console.error(e);
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err: any) {
+      console.error("[KOLLAB FILE UPLOAD]", err);
+      setUploadError(err?.message || "File upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/files?id=${id}`, { method: "DELETE" });
+      const res = await fetchWithTimeout(`/api/files?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
       setFiles((prev) => prev.filter((f) => f.id !== id));
-    } catch (e) {
-      console.error(e);
+    } catch (err: any) {
+      console.error("[KOLLAB FILE DELETE]", err);
+      alert("Failed to delete file. Please check your permissions.");
     }
   };
 
@@ -76,24 +117,29 @@ export default function FilesPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               Cloud Storage & Files
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Shared team documents, presentation decks, recordings, and media assets.
+              Store, share, and manage workspace documents, assets, and recordings.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <Button
-              onClick={() => setUploadModalOpen(true)}
+              onClick={() => {
+                setUploadModalOpen(true);
+                setUploadError(null);
+                setSelectedFile(null);
+              }}
               className="rounded-xl h-10 px-4 text-xs font-semibold bg-[#10B981] hover:bg-[#059669] text-white gap-2 shadow-sm shadow-emerald-500/20"
             >
               <Upload className="w-4 h-4" />
-              <span>Upload File</span>
+              <span>Upload Real File</span>
             </Button>
           </div>
         </div>
@@ -111,16 +157,36 @@ export default function FilesPage() {
           </div>
         </div>
 
-        {/* Files List Table */}
+        {/* States: Loading, Error, Success */}
         {loading ? (
-          <div className="h-48 flex items-center justify-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+          <div className="h-56 bg-white rounded-3xl border border-slate-200/80 flex flex-col items-center justify-center text-slate-400 gap-3">
+            <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
+            <span className="text-xs font-medium">Loading workspace files...</span>
+          </div>
+        ) : error ? (
+          <div className="p-8 bg-white rounded-3xl border border-rose-100 shadow-sm text-center space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">Failed to load files</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadFiles}
+              className="rounded-xl text-xs gap-1.5 border-slate-200 hover:bg-slate-50"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Retry</span>
+            </Button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-            <HardDrive className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 space-y-3">
+            <HardDrive className="w-10 h-10 text-slate-300 mx-auto" />
             <h3 className="text-base font-bold text-slate-900">No files found</h3>
-            <p className="text-xs text-slate-500 mt-1">Click Upload File above to store assets in Kollab S3 storage.</p>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {search.trim() ? "No files matched your search filter." : "Click Upload Real File above to store assets in your workspace."}
+            </p>
           </div>
         ) : (
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -162,14 +228,18 @@ export default function FilesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <a
                           href={f.downloadUrl}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                          download={f.name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                           title="Download"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </a>
                         <button
+                          type="button"
                           onClick={() => handleDelete(f.id)}
-                          className="p-1.5 rounded-lg text-red-400 hover:text-red-700 hover:bg-red-50"
+                          className="p-1.5 rounded-lg text-red-400 hover:text-red-700 hover:bg-red-50 transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -184,18 +254,19 @@ export default function FilesPage() {
         )}
       </div>
 
-      {/* Upload Modal */}
+      {/* Real Multipart File Upload Modal */}
       {uploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                   <Upload className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-base text-slate-900">Upload to S3 Storage</h3>
+                <h3 className="font-bold text-base text-slate-900">Upload to Storage</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setUploadModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600"
               >
@@ -203,48 +274,51 @@ export default function FilesPage() {
               </button>
             </div>
 
+            {uploadError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+                {uploadError}
+              </div>
+            )}
+
             <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  File Name
-                </label>
-                <Input
-                  placeholder="e.g. Q4_Executive_Summary.pdf"
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Category
-                </label>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  {(["document", "image", "video"] as const).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setFileCategory(cat)}
-                      className={`py-2 rounded-xl border text-center font-medium capitalize transition-all ${
-                        fileCategory === cat
-                          ? "border-[#10B981] bg-emerald-50 text-[#059669]"
-                          : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={!fileName.trim()}
-                className="w-full h-10 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-semibold text-xs mt-2 shadow-sm shadow-emerald-500/20"
+              <div className="border-2 border-dashed border-emerald-200 rounded-2xl p-6 text-center hover:bg-emerald-50/40 transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
               >
-                Upload File
-              </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <FileUp className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-800">
+                  {selectedFile ? selectedFile.name : "Click to select a file"}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {selectedFile
+                    ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • ${selectedFile.type || "file"}`
+                    : "Supports PDF, images, video, ZIP, documents up to 50MB"}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setUploadModalOpen(false)}
+                  className="rounded-xl text-xs h-10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!selectedFile || uploading}
+                  className="rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold h-10 gap-2 shadow-sm shadow-emerald-500/20"
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  <span>{uploading ? "Uploading..." : "Confirm Upload"}</span>
+                </Button>
+              </div>
             </form>
           </div>
         </div>

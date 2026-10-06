@@ -1,54 +1,75 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useCallback } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   Film,
   Play,
-  Clock,
   Download,
   Trash2,
-  Share2,
-  Sparkles,
   Search,
-  Check,
   Loader2,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
+import { fetchJsonWithTimeout } from "@/lib/client-fetch";
 
 export default function RecordingsPage() {
   const [recordings, setRecordings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [playingRecording, setPlayingRecording] = useState<any | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/recordings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.recordings) setRecordings(d.recordings);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+  const loadRecordings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchJsonWithTimeout<{ recordings: any[] }>("/api/recordings");
+      setRecordings(data.recordings || []);
+    } catch (err: any) {
+      console.error("[Recordings] Load error:", err);
+      setError(err?.message || "Failed to load meeting recordings.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadRecordings();
+  }, [loadRecordings]);
+
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to permanently delete this recording?")) {
+      return;
+    }
+    setDeletingId(id);
+    setActionError(null);
     try {
-      await fetch(`/api/recordings?id=${id}`, { method: "DELETE" });
+      await fetchJsonWithTimeout(`/api/recordings?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
       setRecordings((prev) => prev.filter((r) => r.id !== id));
       if (playingRecording?.id === id) setPlayingRecording(null);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("[Recordings] Delete error:", e);
+      setActionError(e?.message || "Failed to delete recording.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
   const filtered = search.trim() === ""
     ? recordings
-    : recordings.filter((r) => r.title.toLowerCase().includes(search.toLowerCase()));
+    : recordings.filter((r) =>
+        r.title?.toLowerCase().includes(search.toLowerCase()) ||
+        r.meetingTitle?.toLowerCase().includes(search.toLowerCase())
+      );
 
   return (
     <AppShell>
@@ -59,10 +80,25 @@ export default function RecordingsPage() {
               Meeting Recordings
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Playback recorded video sessions, download media, and inspect AI transcripts.
+              Playback recorded video sessions, download media, and inspect session archives.
             </p>
           </div>
         </div>
+
+        {actionError && (
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{actionError}</span>
+            </div>
+            <button
+              onClick={() => setActionError(null)}
+              className="text-rose-400 hover:text-rose-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Search */}
         <div className="flex items-center gap-2 max-w-sm">
@@ -70,7 +106,7 @@ export default function RecordingsPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             <input
               type="text"
-              placeholder="Search recordings..."
+              placeholder="Search recordings by title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-10 text-xs rounded-xl bg-white border border-slate-200 outline-none w-full focus:border-emerald-500"
@@ -85,38 +121,54 @@ export default function RecordingsPage() {
               <div>
                 <h3 className="font-bold text-base">{playingRecording.title}</h3>
                 <span className="text-xs text-slate-400">
-                  Duration: {formatDuration(playingRecording.durationSeconds)}
+                  Duration: {formatDuration(playingRecording.durationSeconds || 0)}
                 </span>
               </div>
               <button
                 onClick={() => setPlayingRecording(null)}
                 className="p-1 rounded-lg text-slate-400 hover:text-white"
+                aria-label="Close player"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="aspect-video w-full rounded-2xl bg-black overflow-hidden border border-slate-800 flex items-center justify-center">
-              <video
-                src={playingRecording.fileUrl}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-              />
+              {playingRecording.fileUrl ? (
+                <video
+                  src={playingRecording.fileUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="text-center p-8 text-slate-400">
+                  <Film className="w-10 h-10 mx-auto mb-2 text-slate-600" />
+                  <p className="text-sm">Video file is still processing or unavailable.</p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Recordings Grid */}
+        {/* Content States: Loading | Error | Success */}
         {loading ? (
           <div className="h-48 flex items-center justify-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Unable to load recordings"
+            message={error}
+            onRetry={loadRecordings}
+          />
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
             <Film className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <h3 className="text-base font-bold text-slate-900">No recordings found</h3>
-            <p className="text-xs text-slate-500 mt-1">Start a meeting and hit Record to save your first session.</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {search.trim() ? "No recordings match your search criteria." : "Start a meeting and hit Record to save your first session."}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -141,7 +193,7 @@ export default function RecordingsPage() {
                     </div>
                   </div>
                   <div className="absolute bottom-2.5 right-2.5 bg-slate-950/80 backdrop-blur px-2 py-0.5 rounded text-[11px] font-mono font-medium text-white">
-                    {formatDuration(rec.durationSeconds)}
+                    {formatDuration(rec.durationSeconds || 0)}
                   </div>
                 </div>
 
@@ -151,7 +203,7 @@ export default function RecordingsPage() {
                       {rec.title}
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-1">
-                      Recorded on {new Date(rec.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                      Recorded on {rec.createdAt ? new Date(rec.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) : "Recently"}
                     </p>
                   </div>
 
@@ -165,20 +217,27 @@ export default function RecordingsPage() {
                     </button>
 
                     <div className="flex items-center gap-2">
-                      <a
-                        href={rec.fileUrl}
-                        download
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                        title="Download MP4"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
+                      {rec.fileUrl && (
+                        <a
+                          href={rec.fileUrl}
+                          download
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                          title="Download MP4"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </a>
+                      )}
                       <button
                         onClick={() => handleDelete(rec.id)}
-                        className="p-1.5 rounded-lg text-red-400 hover:text-red-700 hover:bg-red-50"
-                        title="Delete"
+                        disabled={deletingId === rec.id}
+                        className="p-1.5 rounded-lg text-red-400 hover:text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        title="Delete recording"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        {deletingId === rec.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
                   </div>

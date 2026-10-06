@@ -161,6 +161,7 @@ async function initializeTables(client: PGlite) {
 
     CREATE TABLE IF NOT EXISTS meetings (
       id TEXT PRIMARY KEY,
+      organization_id TEXT REFERENCES organizations(id),
       title TEXT NOT NULL,
       description TEXT,
       host_id TEXT NOT NULL REFERENCES users(id),
@@ -194,6 +195,7 @@ async function initializeTables(client: PGlite) {
 
     CREATE TABLE IF NOT EXISTS recordings (
       id TEXT PRIMARY KEY,
+      organization_id TEXT REFERENCES organizations(id),
       meeting_id TEXT REFERENCES meetings(id) ON DELETE SET NULL,
       title TEXT NOT NULL,
       duration_seconds INTEGER DEFAULT 0 NOT NULL,
@@ -265,6 +267,8 @@ async function initializeTables(client: PGlite) {
       parent_message_id TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS chat_reactions (
       id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
@@ -386,24 +390,15 @@ async function initializeTables(client: PGlite) {
       transcript_minutes INTEGER DEFAULT 0 NOT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
-
-    -- Apply column additions if tables already existed
-    DO $$ BEGIN
-      ALTER TABLE meetings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);
-    EXCEPTION WHEN OTHERS THEN NULL; END $$;
-
-    DO $$ BEGIN
-      ALTER TABLE recordings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);
-    EXCEPTION WHEN OTHERS THEN NULL; END $$;
-
-    CREATE TABLE IF NOT EXISTS chat_reactions (
-      id TEXT PRIMARY KEY,
-      message_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      emoji TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-    );
   `);
+
+  try {
+    await client.exec(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);`);
+  } catch {}
+
+  try {
+    await client.exec(`ALTER TABLE recordings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);`);
+  } catch {}
 
   // Check if workspace organization exists, if not seed workspace
   const res = await client.query("SELECT COUNT(*) FROM organizations;");

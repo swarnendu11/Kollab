@@ -53,6 +53,7 @@ export async function GET() {
       responseTimeMs: totalDurationMs,
     });
   } catch (error: any) {
+    console.error("[HEALTH ERROR]", error);
     return NextResponse.json(
       {
         status: "degraded",
