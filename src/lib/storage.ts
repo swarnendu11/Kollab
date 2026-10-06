@@ -5,11 +5,17 @@ import crypto from "crypto";
 const STORAGE_SECRET = process.env.STORAGE_SECRET || process.env.BETTER_AUTH_SECRET || "kollab_storage_secret_key_32_bytes";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 
-const LOCAL_STORAGE_DIR = path.join(process.cwd(), "data", "storage");
+const LOCAL_STORAGE_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+  ? path.join("/tmp", "storage")
+  : path.join(process.cwd(), "data", "storage");
 
 // Ensure local storage directory exists
-if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
-  fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
+    fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
+  }
+} catch {
+  // Graceful fallback for restricted/read-only filesystems
 }
 
 export interface StorageUploadResult {

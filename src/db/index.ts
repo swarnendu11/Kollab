@@ -36,13 +36,16 @@ export async function getDb() {
     }
 
     // Local persistent PGlite storage
-    const dataDir = path.join(process.cwd(), "data", "kollab-pg");
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
+    const baseDir = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+      ? path.join("/tmp", "kollab-pg")
+      : path.join(process.cwd(), "data", "kollab-pg");
+    const dataDir = baseDir;
 
     if (!globalForDb.pgliteInstance) {
       try {
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
         const pidFile = path.join(dataDir, "postmaster.pid");
         if (fs.existsSync(pidFile)) {
           try { fs.unlinkSync(pidFile); } catch { }
