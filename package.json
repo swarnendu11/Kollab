@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.11",
     "@electric-sql/pglite": "^0.2.16",
     "@livekit/components-react": "^2.9.24",
     "@radix-ui/react-avatar": "^1.1.3",

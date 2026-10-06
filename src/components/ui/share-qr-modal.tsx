@@ -51,7 +51,7 @@ export function ShareQrModal({
   };
 
   const copyFullInvite = () => {
-    const text = `Join my Kollab meeting:\n\nTitle: ${meetingTitle}\nJoin Link: ${joinUrl}\nMeeting Code: ${joinCode}\n\nPowered by Kollab 2.0`;
+    const text = `Join my Kollab meeting:\n\nTitle: ${meetingTitle}\nJoin Link: ${joinUrl}\nMeeting Code: ${joinCode}\n\nPowered by Kollab`;
     navigator.clipboard.writeText(text);
     setCopiedInvite(true);
     setTimeout(() => setCopiedInvite(false), 2000);

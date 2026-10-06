@@ -115,7 +115,7 @@ export default function LandingPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
             </span>
-            <span className="text-cyan-300 font-black mr-1 tracking-wide">Kollab 2.0</span>
+            <span className="text-cyan-300 font-black mr-1 tracking-wide">Kollab</span>
             <span className="text-slate-400">•</span>
             <span className="text-white font-bold">Ultra-HD Video, Live Chat, Infinite Canvas & Autonomous AI Takeaways</span>
           </div>

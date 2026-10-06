@@ -115,11 +115,10 @@ export function InteractiveSuperpowers() {
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
         <button
           onClick={() => setActiveTab("video")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
-            activeTab === "video"
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${activeTab === "video"
               ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-white shadow-xl shadow-indigo-500/50 scale-105 border border-indigo-300 ring-2 ring-indigo-400/30"
               : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
-          }`}
+            }`}
         >
           <Video className={`w-4 h-4 ${activeTab === "video" ? "text-white" : "text-indigo-400"}`} />
           <span className="text-white font-extrabold">HD Video Meetings</span>
@@ -127,11 +126,10 @@ export function InteractiveSuperpowers() {
 
         <button
           onClick={() => setActiveTab("ai")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
-            activeTab === "ai"
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${activeTab === "ai"
               ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-xl shadow-emerald-500/50 scale-105 border border-emerald-300 ring-2 ring-emerald-400/30"
               : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
-          }`}
+            }`}
         >
           <Sparkles className={`w-4 h-4 ${activeTab === "ai" ? "text-white" : "text-emerald-400"}`} />
           <span className="text-white font-extrabold">Autonomous AI Notes</span>
@@ -139,11 +137,10 @@ export function InteractiveSuperpowers() {
 
         <button
           onClick={() => setActiveTab("whiteboard")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
-            activeTab === "whiteboard"
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${activeTab === "whiteboard"
               ? "bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 text-white shadow-xl shadow-purple-500/50 scale-105 border border-pink-300 ring-2 ring-pink-400/30"
               : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
-          }`}
+            }`}
         >
           <Paintbrush className={`w-4 h-4 ${activeTab === "whiteboard" ? "text-white" : "text-pink-400"}`} />
           <span className="text-white font-extrabold">Infinite Whiteboard</span>
@@ -151,11 +148,10 @@ export function InteractiveSuperpowers() {
 
         <button
           onClick={() => setActiveTab("chat")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
-            activeTab === "chat"
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${activeTab === "chat"
               ? "bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500 text-white shadow-xl shadow-rose-500/50 scale-105 border border-rose-300 ring-2 ring-rose-400/30"
               : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
-          }`}
+            }`}
         >
           <MessageSquare className={`w-4 h-4 ${activeTab === "chat" ? "text-white" : "text-rose-400"}`} />
           <span className="text-white font-extrabold">Slack-Style Chat</span>
@@ -279,9 +275,8 @@ export function InteractiveSuperpowers() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setMicOn(!micOn)}
-                  className={`p-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    micOn ? "bg-emerald-900/80 hover:bg-emerald-800 text-white" : "bg-rose-600 text-white"
-                  }`}
+                  className={`p-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${micOn ? "bg-emerald-900/80 hover:bg-emerald-800 text-white" : "bg-rose-600 text-white"
+                    }`}
                 >
                   {micOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                   <span>{micOn ? "Mute" : "Unmuted"}</span>
@@ -289,9 +284,8 @@ export function InteractiveSuperpowers() {
 
                 <button
                   onClick={() => setCamOn(!camOn)}
-                  className={`p-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    camOn ? "bg-emerald-900/80 hover:bg-emerald-800 text-white" : "bg-rose-600 text-white"
-                  }`}
+                  className={`p-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${camOn ? "bg-emerald-900/80 hover:bg-emerald-800 text-white" : "bg-rose-600 text-white"
+                    }`}
                 >
                   {camOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
                   <span>{camOn ? "Stop Cam" : "Start Cam"}</span>
@@ -348,7 +342,7 @@ export function InteractiveSuperpowers() {
                       <span>Executive Meeting Summary</span>
                     </h5>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      The team ratified the new vibrant 3-color design system (Electric Indigo, Vivid Emerald, Sunset Coral) for Kollab 2.0. PGlite database persistence is operational across all workspaces with auto-recovering locks.
+                      The team ratified the new vibrant 3-color design system (Electric Indigo, Vivid Emerald, Sunset Coral) for Kollab. PGlite database persistence is operational across all workspaces with auto-recovering locks.
                     </p>
                   </div>
 
@@ -388,11 +382,10 @@ export function InteractiveSuperpowers() {
                       <div
                         key={act.id}
                         onClick={() => setCheckedActions((prev) => ({ ...prev, [act.id]: !prev[act.id] }))}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isDone
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isDone
                             ? "bg-emerald-950/40 border-emerald-500/40 opacity-80"
                             : "bg-white/5 border-white/10 hover:border-emerald-400/40"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2.5">
                           <div className={`w-4 h-4 rounded flex items-center justify-center text-[10px] border ${isDone ? "bg-emerald-500 border-emerald-400 text-slate-950 font-bold" : "border-slate-500"}`}>
@@ -441,9 +434,8 @@ export function InteractiveSuperpowers() {
                         key={swatch.name}
                         type="button"
                         onClick={() => setStickyColor(swatch.class)}
-                        className={`w-5 h-5 rounded-full border-2 transition-transform cursor-pointer ${
-                          stickyColor === swatch.class ? "scale-125 border-white shadow-md ring-2 ring-purple-400" : "border-transparent hover:scale-110"
-                        } ${swatch.dot}`}
+                        className={`w-5 h-5 rounded-full border-2 transition-transform cursor-pointer ${stickyColor === swatch.class ? "scale-125 border-white shadow-md ring-2 ring-purple-400" : "border-transparent hover:scale-110"
+                          } ${swatch.dot}`}
                         title={swatch.name}
                       />
                     ))}
@@ -502,11 +494,10 @@ export function InteractiveSuperpowers() {
                     <button
                       key={ch}
                       onClick={() => setChatChannel(ch)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer ${
-                        chatChannel === ch
+                      className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer ${chatChannel === ch
                           ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
                           : "text-slate-400 hover:text-white hover:bg-white/10"
-                      }`}
+                        }`}
                     >
                       #{ch}
                     </button>
@@ -551,11 +542,10 @@ export function InteractiveSuperpowers() {
                       key={tone}
                       type="button"
                       onClick={() => applyAiTone(tone)}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border transition-all cursor-pointer ${
-                        chatTone === tone
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border transition-all cursor-pointer ${chatTone === tone
                           ? "bg-rose-500 text-white border-rose-500 shadow-xs"
                           : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
-                      }`}
+                        }`}
                     >
                       {tone}
                     </button>

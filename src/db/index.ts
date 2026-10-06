@@ -45,11 +45,11 @@ export async function getDb() {
       try {
         const pidFile = path.join(dataDir, "postmaster.pid");
         if (fs.existsSync(pidFile)) {
-          try { fs.unlinkSync(pidFile); } catch {}
+          try { fs.unlinkSync(pidFile); } catch { }
         }
         const lockFile = path.join(dataDir, ".s.PGSQL.5432.lock.out");
         if (fs.existsSync(lockFile)) {
-          try { fs.unlinkSync(lockFile); } catch {}
+          try { fs.unlinkSync(lockFile); } catch { }
         }
 
         const pglite = new PGlite(dataDir);
@@ -433,7 +433,7 @@ async function seedInitialData(client: PGlite) {
 
     -- Chat Messages
     INSERT INTO chat_messages (id, chat_room_id, sender_id, sender_name, sender_avatar, message_text) VALUES
-    ('msg_1', 'channel_general', 'usr_sarah_chen', 'Sarah Chen', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', 'Welcome to Kollab 2.0! The new UI with multi-color themes and live audio filters is looking stunning.'),
+    ('msg_1', 'channel_general', 'usr_sarah_chen', 'Sarah Chen', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', 'Welcome to Kollab! The new UI with multi-color themes and live audio filters is looking stunning.'),
     ('msg_2', 'channel_general', 'usr_marcus_vance', 'Marcus Vance', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', 'WebRTC sub-second latency is verified on all streams. Ready for today''s product review sync!'),
     ('msg_3', 'channel_general', 'usr_demo_admin', 'Alex Rivera', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', 'Great work everyone! Let''s make sure to test the whiteboard and screen share during the meeting.'),
     ('msg_4', 'channel_engineering', 'usr_marcus_vance', 'Marcus Vance', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', 'PostgreSQL PGlite embedded engine is online and ultra fast.'),
