@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { HardwareTestModal } from "@/components/ui/hardware-test-modal";
 import { ShareQrModal } from "@/components/ui/share-qr-modal";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -57,6 +58,9 @@ export default function DashboardPage() {
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
@@ -73,23 +77,61 @@ export default function DashboardPage() {
       })
       .catch(() => setLoadingMeetings(false));
 
-    // Initial and periodic Activity poll (every 4 seconds)
-    const fetchActivity = () => {
-      fetch("/api/activity")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.activities) setActivities(d.activities);
-          setLoadingActivities(false);
-        })
-        .catch(() => setLoadingActivities(false));
-    };
-    fetchActivity();
-    const activityTimer = setInterval(fetchActivity, 4000);
+    fetch("/api/tasks")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.tasks) setTasks(d.tasks);
+        setLoadingTasks(false);
+      })
+      .catch(() => setLoadingTasks(false));
 
-    return () => {
-      clearInterval(activityTimer);
-    };
+    fetch("/api/activity")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.activities) setActivities(d.activities);
+        setLoadingActivities(false);
+      })
+      .catch(() => setLoadingActivities(false));
   }, []);
+
+  // Real-time SSE event subscriptions (no polling)
+  useRealtime({
+    onEvent: (event) => {
+      if (event.type === "meeting.started" || event.type === "meeting.ended") {
+        fetch("/api/meetings?status=scheduled")
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.meetings) setUpcomingMeetings(d.meetings);
+          });
+      } else if (event.type === "task.created" || event.type === "task.updated") {
+        fetch("/api/tasks")
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.tasks) setTasks(d.tasks);
+          });
+      } else {
+        fetch("/api/activity")
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.activities) setActivities(d.activities);
+          });
+      }
+    },
+  });
+
+  const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "done" ? "todo" : "done";
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: nextStatus } : t))
+    );
+    try {
+      await fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: taskId, status: nextStatus }),
+      });
+    } catch {}
+  };
 
   const formatRelativeTime = (isoString: string) => {
     if (!isoString) return "just now";
@@ -463,6 +505,73 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
+
+            {/* Action Items & Tasks Section */}
+            <div className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-emerald-950">Active Tasks & Action Items</h3>
+                  <span className="text-[10px] bg-emerald-100 text-[#047857] px-2 py-0.5 rounded-full font-bold">
+                    {tasks.filter((t) => t.status !== "done").length} open
+                  </span>
+                </div>
+              </div>
+
+              {loadingTasks ? (
+                <div className="p-6 text-center text-slate-400 text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-emerald-600" />
+                  <span>Loading action items...</span>
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="p-6 text-center bg-white rounded-3xl border border-emerald-100/80 text-xs text-slate-400">
+                  No action items assigned yet. When AI extracts tasks from meetings, they will appear here.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tasks.slice(0, 5).map((t) => (
+                    <div
+                      key={t.id}
+                      className="p-3.5 rounded-2xl bg-white border border-emerald-100/70 shadow-xs flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTaskStatus(t.id, t.status)}
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                            t.status === "done"
+                              ? "bg-emerald-600 border-emerald-600 text-white"
+                              : "border-slate-300 hover:border-emerald-500 bg-white"
+                          }`}
+                        >
+                          {t.status === "done" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </button>
+                        <div className="min-w-0">
+                          <p
+                            className={`text-xs font-semibold truncate ${
+                              t.status === "done" ? "line-through text-slate-400" : "text-slate-900"
+                            }`}
+                          >
+                            {t.title}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            Assigned to: {t.ownerName} • Due: {t.dueDate || "Ongoing"}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          t.priority === "urgent" || t.priority === "high"
+                            ? "bg-rose-50 text-rose-700 border border-rose-200"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        }`}
+                      >
+                        {t.priority}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Recent Activity (1 Col) - Live Dynamic Data from API */}

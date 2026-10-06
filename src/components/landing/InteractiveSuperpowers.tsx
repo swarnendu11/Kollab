@@ -37,11 +37,11 @@ export function InteractiveSuperpowers() {
   });
 
   // Whiteboard Tab State
-  const [stickyColor, setStickyColor] = useState<string>("bg-amber-100 border-amber-300 text-amber-950");
+  const [stickyColor, setStickyColor] = useState<string>("bg-amber-950/80 border-amber-500/60 text-amber-200");
   const [stickyNotes, setStickyNotes] = useState([
-    { id: 1, text: "Optimize WebRTC adaptive bitrate for mobile clients 🚀", color: "bg-indigo-100 border-indigo-300 text-indigo-950" },
-    { id: 2, text: "Standardize on 3-color palette (Indigo, Emerald, Coral) 🎨", color: "bg-emerald-100 border-emerald-300 text-emerald-950" },
-    { id: 3, text: "PGlite persistent storage initialized with zero locks ⚡", color: "bg-rose-100 border-rose-300 text-rose-950" },
+    { id: 1, text: "Optimize WebRTC adaptive bitrate for mobile clients 🚀", color: "bg-indigo-950/80 border-indigo-500/60 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.25)]" },
+    { id: 2, text: "Standardize on 3-color palette (Indigo, Emerald, Coral) 🎨", color: "bg-emerald-950/80 border-emerald-500/60 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.25)]" },
+    { id: 3, text: "PGlite persistent storage initialized with zero locks ⚡", color: "bg-rose-950/80 border-rose-500/60 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.25)]" },
   ]);
   const [newStickyText, setNewStickyText] = useState("");
 
@@ -115,65 +115,65 @@ export function InteractiveSuperpowers() {
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
         <button
           onClick={() => setActiveTab("video")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
             activeTab === "video"
-              ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30 scale-105"
-              : "bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
+              ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-white shadow-xl shadow-indigo-500/50 scale-105 border border-indigo-300 ring-2 ring-indigo-400/30"
+              : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
           }`}
         >
-          <Video className={`w-4 h-4 ${activeTab === "video" ? "text-indigo-200" : "text-indigo-600"}`} />
-          <span>HD Video Meetings</span>
+          <Video className={`w-4 h-4 ${activeTab === "video" ? "text-white" : "text-indigo-400"}`} />
+          <span className="text-white font-extrabold">HD Video Meetings</span>
         </button>
 
         <button
           onClick={() => setActiveTab("ai")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
             activeTab === "ai"
-              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/30 scale-105"
-              : "bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
+              ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-xl shadow-emerald-500/50 scale-105 border border-emerald-300 ring-2 ring-emerald-400/30"
+              : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
           }`}
         >
-          <Sparkles className={`w-4 h-4 ${activeTab === "ai" ? "text-emerald-200" : "text-emerald-600"}`} />
-          <span>Autonomous AI Notes</span>
+          <Sparkles className={`w-4 h-4 ${activeTab === "ai" ? "text-white" : "text-emerald-400"}`} />
+          <span className="text-white font-extrabold">Autonomous AI Notes</span>
         </button>
 
         <button
           onClick={() => setActiveTab("whiteboard")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
             activeTab === "whiteboard"
-              ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-600/30 scale-105"
-              : "bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
+              ? "bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 text-white shadow-xl shadow-purple-500/50 scale-105 border border-pink-300 ring-2 ring-pink-400/30"
+              : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
           }`}
         >
-          <Paintbrush className={`w-4 h-4 ${activeTab === "whiteboard" ? "text-purple-200" : "text-purple-600"}`} />
-          <span>Infinite Whiteboard</span>
+          <Paintbrush className={`w-4 h-4 ${activeTab === "whiteboard" ? "text-white" : "text-pink-400"}`} />
+          <span className="text-white font-extrabold">Infinite Whiteboard</span>
         </button>
 
         <button
           onClick={() => setActiveTab("chat")}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer ${
             activeTab === "chat"
-              ? "bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-600/30 scale-105"
-              : "bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
+              ? "bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500 text-white shadow-xl shadow-rose-500/50 scale-105 border border-rose-300 ring-2 ring-rose-400/30"
+              : "bg-slate-950/80 hover:bg-slate-900 text-white border border-white/25 hover:border-white/50 backdrop-blur-xl shadow-lg"
           }`}
         >
-          <MessageSquare className={`w-4 h-4 ${activeTab === "chat" ? "text-rose-200" : "text-rose-600"}`} />
-          <span>Slack-Style Chat</span>
+          <MessageSquare className={`w-4 h-4 ${activeTab === "chat" ? "text-white" : "text-rose-400"}`} />
+          <span className="text-white font-extrabold">Slack-Style Chat</span>
         </button>
       </div>
 
       {/* Main Interactive Display Container */}
-      <div className="relative rounded-3xl border border-slate-200/80 bg-white shadow-2xl overflow-hidden min-h-[500px]">
+      <div className="relative rounded-3xl border-2 border-indigo-500/40 bg-slate-950/90 backdrop-blur-2xl shadow-[0_0_80px_rgba(99,102,241,0.3)] overflow-hidden min-h-[500px] ring-1 ring-white/15">
         {/* Top Window Header */}
-        <div className="h-12 bg-slate-100/90 border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between">
+        <div className="h-12 bg-slate-900/95 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-rose-500 shadow-2xs" />
             <span className="w-3 h-3 rounded-full bg-amber-400 shadow-2xs" />
             <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-2xs" />
           </div>
 
-          <div className="flex items-center gap-2 bg-white px-4 py-1 rounded-lg border border-slate-200/80 text-xs font-mono font-semibold text-slate-700 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-2 bg-slate-950/90 px-4 py-1 rounded-lg border border-emerald-500/40 text-xs font-mono font-bold text-emerald-300 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>
               {activeTab === "video" && "kollab.io/meeting/klb-design-q4 • 60 FPS"}
               {activeTab === "ai" && "kollab.io/ai/meeting-intelligence • Live Diarization"}
@@ -182,9 +182,9 @@ export function InteractiveSuperpowers() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-600">
+          <div className="flex items-center gap-2 text-xs font-black text-cyan-300">
             <span className="hidden sm:inline">LIVE DEMO</span>
-            <span className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-[10px] font-mono uppercase">
+            <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-mono uppercase text-cyan-200 font-extrabold">
               Interactive
             </span>
           </div>
@@ -423,27 +423,27 @@ export function InteractiveSuperpowers() {
 
         {/* TAB 3: COLLABORATIVE WHITEBOARD */}
         {activeTab === "whiteboard" && (
-          <div className="p-6 sm:p-8 bg-slate-50 min-h-[460px] flex flex-col justify-between animate-in fade-in duration-300">
+          <div className="p-6 sm:p-8 bg-slate-900/90 text-white min-h-[460px] flex flex-col justify-between animate-in fade-in duration-300">
             <div>
               {/* Whiteboard Toolbar */}
-              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-slate-200 gap-3 mb-6">
+              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-white/10 gap-3 mb-6">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Add Sticky Note:</span>
+                  <span className="text-xs font-bold text-slate-300">Add Sticky Note:</span>
                   <div className="flex items-center gap-1.5">
                     {[
-                      { class: "bg-indigo-100 border-indigo-300 text-indigo-950", name: "Indigo" },
-                      { class: "bg-emerald-100 border-emerald-300 text-emerald-950", name: "Emerald" },
-                      { class: "bg-rose-100 border-rose-300 text-rose-950", name: "Coral" },
-                      { class: "bg-amber-100 border-amber-300 text-amber-950", name: "Amber" },
-                      { class: "bg-purple-100 border-purple-300 text-purple-950", name: "Violet" },
+                      { class: "bg-indigo-950/80 border-indigo-500/60 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.25)]", name: "Indigo", dot: "bg-indigo-500" },
+                      { class: "bg-emerald-950/80 border-emerald-500/60 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.25)]", name: "Emerald", dot: "bg-emerald-500" },
+                      { class: "bg-rose-950/80 border-rose-500/60 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.25)]", name: "Coral", dot: "bg-rose-500" },
+                      { class: "bg-amber-950/80 border-amber-500/60 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]", name: "Amber", dot: "bg-amber-500" },
+                      { class: "bg-purple-950/80 border-purple-500/60 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.25)]", name: "Violet", dot: "bg-purple-500" },
                     ].map((swatch) => (
                       <button
                         key={swatch.name}
                         type="button"
                         onClick={() => setStickyColor(swatch.class)}
-                        className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                          stickyColor === swatch.class ? "scale-125 border-slate-900 shadow-xs" : "border-transparent hover:scale-110"
-                        } ${swatch.class.split(" ")[0]}`}
+                        className={`w-5 h-5 rounded-full border-2 transition-transform cursor-pointer ${
+                          stickyColor === swatch.class ? "scale-125 border-white shadow-md ring-2 ring-purple-400" : "border-transparent hover:scale-110"
+                        } ${swatch.dot}`}
                         title={swatch.name}
                       />
                     ))}
@@ -456,9 +456,9 @@ export function InteractiveSuperpowers() {
                     placeholder="Type idea & hit enter..."
                     value={newStickyText}
                     onChange={(e) => setNewStickyText(e.target.value)}
-                    className="h-9 px-3 text-xs rounded-xl bg-white border border-slate-300 text-slate-800 placeholder:text-slate-400 outline-none w-48 sm:w-64"
+                    className="h-9 px-3 text-xs rounded-xl bg-slate-950/80 border border-white/20 text-white placeholder:text-slate-400 outline-none w-48 sm:w-64 focus:border-purple-400"
                   />
-                  <Button type="submit" size="sm" className="h-9 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold">
+                  <Button type="submit" size="sm" className="h-9 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold cursor-pointer">
                     <Plus className="w-3.5 h-3.5" />
                     <span>Post</span>
                   </Button>
@@ -466,12 +466,12 @@ export function InteractiveSuperpowers() {
               </div>
 
               {/* Canvas Area */}
-              <div className="h-64 sm:h-72 rounded-2xl bg-white border-2 border-dashed border-slate-300/80 p-6 relative overflow-hidden flex flex-wrap content-start gap-4 shadow-inner">
+              <div className="h-64 sm:h-72 rounded-2xl bg-slate-950/90 border-2 border-dashed border-white/15 p-6 relative overflow-hidden flex flex-wrap content-start gap-4 shadow-inner">
                 {/* Floating sticky notes */}
                 {stickyNotes.map((note) => (
                   <div
                     key={note.id}
-                    className={`p-4 rounded-2xl border shadow-sm max-w-xs text-xs font-semibold leading-relaxed animate-in fade-in zoom-in-95 duration-200 hover:-translate-y-1 transition-transform cursor-pointer ${note.color}`}
+                    className={`p-4 rounded-2xl border shadow-lg max-w-xs text-xs font-semibold leading-relaxed animate-in fade-in zoom-in-95 duration-200 hover:-translate-y-1 transition-transform cursor-pointer ${note.color}`}
                   >
                     {note.text}
                   </div>
@@ -479,12 +479,12 @@ export function InteractiveSuperpowers() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>Multi-user real-time canvas • Auto-persisted to database</span>
               </span>
-              <Link href="/whiteboards" className="font-bold text-purple-600 hover:underline">
+              <Link href="/whiteboards" className="font-bold text-purple-400 hover:text-purple-300 hover:underline">
                 Open Full Whiteboard App →
               </Link>
             </div>
@@ -493,19 +493,19 @@ export function InteractiveSuperpowers() {
 
         {/* TAB 4: SLACK-GRADE TEAM CHAT */}
         {activeTab === "chat" && (
-          <div className="p-6 sm:p-8 bg-white min-h-[460px] flex flex-col justify-between animate-in fade-in duration-300">
+          <div className="p-6 sm:p-8 bg-slate-900/90 text-white min-h-[460px] flex flex-col justify-between animate-in fade-in duration-300">
             <div>
               {/* Channel Selector */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
                 <div className="flex items-center gap-2">
                   {(["general", "engineering", "design", "product"] as const).map((ch) => (
                     <button
                       key={ch}
                       onClick={() => setChatChannel(ch)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors ${
+                      className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer ${
                         chatChannel === ch
-                          ? "bg-rose-50 text-rose-700 border border-rose-200"
-                          : "text-slate-600 hover:bg-slate-100"
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : "text-slate-400 hover:text-white hover:bg-white/10"
                       }`}
                     >
                       #{ch}
@@ -514,7 +514,7 @@ export function InteractiveSuperpowers() {
                 </div>
 
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="hidden sm:inline">2.5s Auto-sync</span>
                 </div>
               </div>
@@ -523,13 +523,13 @@ export function InteractiveSuperpowers() {
               <div className="space-y-4 max-h-56 overflow-y-auto pr-2">
                 {chatMessages.map((m) => (
                   <div key={m.id} className="flex items-start gap-3">
-                    <img src={m.avatar} alt={m.author} className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" />
+                    <img src={m.avatar} alt={m.author} className="w-8 h-8 rounded-full object-cover ring-1 ring-white/20" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-900">{m.author}</span>
+                        <span className="text-xs font-bold text-white">{m.author}</span>
                         <span className="text-[10px] text-slate-400">{m.role} • {m.time}</span>
                       </div>
-                      <p className="text-xs text-slate-700 mt-0.5 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <p className="text-xs text-slate-200 mt-0.5 leading-relaxed bg-white/[0.06] p-2.5 rounded-xl border border-white/10">
                         {m.text}
                       </p>
                     </div>
@@ -539,9 +539,9 @@ export function InteractiveSuperpowers() {
             </div>
 
             {/* Input with AI Tone drafting chips */}
-            <div className="pt-4 border-t border-slate-200 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+            <div className="pt-4 border-t border-white/10 space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-400">
                   <Wand2 className="w-3.5 h-3.5" />
                   <span>AI Drafting Tones:</span>
                 </span>
@@ -551,10 +551,10 @@ export function InteractiveSuperpowers() {
                       key={tone}
                       type="button"
                       onClick={() => applyAiTone(tone)}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border transition-all ${
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold capitalize border transition-all cursor-pointer ${
                         chatTone === tone
-                          ? "bg-rose-600 text-white border-rose-600"
-                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          ? "bg-rose-500 text-white border-rose-500 shadow-xs"
+                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
                       }`}
                     >
                       {tone}
@@ -569,9 +569,9 @@ export function InteractiveSuperpowers() {
                   placeholder={`Send a message to #${chatChannel}...`}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="flex-1 h-11 px-4 text-xs rounded-xl bg-slate-50 border border-slate-200 outline-none text-slate-900 placeholder:text-slate-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                  className="flex-1 h-11 px-4 text-xs rounded-xl bg-slate-950/80 border border-white/20 outline-none text-white placeholder:text-slate-400 focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
                 />
-                <Button type="submit" disabled={!chatInput.trim()} className="h-11 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold gap-1.5">
+                <Button type="submit" disabled={!chatInput.trim()} className="h-11 px-5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white text-xs font-bold gap-1.5 cursor-pointer shadow-md">
                   <Send className="w-3.5 h-3.5" />
                   <span>Send</span>
                 </Button>

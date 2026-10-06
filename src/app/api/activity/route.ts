@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { meetings, chatMessages, documents, recordings, users } from "@/db/schema";
-import { desc } from "drizzle-orm";
+import { meetings, chatMessages, documents, recordings } from "@/db/schema";
+import { requireAuth, handleApiError } from "@/lib/auth";
+import { desc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export interface ActivityItem {
 
 export async function GET() {
   try {
+    const user = await requireAuth();
     const db = await getDb();
 
     // Query latest messages
@@ -27,30 +29,32 @@ export async function GET() {
       .orderBy(desc(chatMessages.createdAt))
       .limit(3);
 
-    // Query latest meetings
+    // Query latest meetings for user's organization
     const recentMeetings = await db
       .select()
       .from(meetings)
+      .where(eq(meetings.organizationId, user.organizationId))
       .orderBy(desc(meetings.createdAt))
       .limit(3);
 
-    // Query latest documents
+    // Query latest documents for user's organization
     const recentDocs = await db
       .select()
       .from(documents)
+      .where(eq(documents.organizationId, user.organizationId))
       .orderBy(desc(documents.updatedAt))
       .limit(3);
 
-    // Query latest recordings
+    // Query latest recordings for user's organization
     const recentRecordings = await db
       .select()
       .from(recordings)
+      .where(eq(recordings.organizationId, user.organizationId))
       .orderBy(desc(recordings.createdAt))
       .limit(2);
 
     const activities: ActivityItem[] = [];
 
-    // Map chat messages
     for (const msg of recentMessages) {
       activities.push({
         id: `act_${msg.id}`,
@@ -58,66 +62,53 @@ export async function GET() {
         title: `Message in #${msg.chatRoomId.replace("channel_", "")}`,
         description: msg.messageText.length > 60 ? `${msg.messageText.slice(0, 60)}...` : msg.messageText,
         author: msg.senderName,
-        timestamp: new Date(msg.createdAt).toISOString(),
-        link: "/chat",
+        timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        link: `/chat?channel=${msg.chatRoomId}`,
         badge: "Chat",
       });
     }
 
-    // Map meetings
     for (const m of recentMeetings) {
       activities.push({
         id: `act_${m.id}`,
         type: "meeting",
         title: m.title,
-        description: `Meeting code: ${m.joinCode} • Status: ${m.status}`,
+        description: m.status === "live" ? "Meeting is currently live" : `Meeting code: ${m.joinCode}`,
         author: "Host",
-        timestamp: new Date(m.createdAt).toISOString(),
-        link: `/meeting/${m.id}/prejoin`,
-        badge: m.status.toUpperCase(),
+        timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        link: `/meeting/${m.joinCode}`,
+        badge: m.status === "live" ? "Live Call" : "Meeting",
       });
     }
 
-    // Map documents
-    for (const doc of recentDocs) {
+    for (const d of recentDocs) {
       activities.push({
-        id: `act_${doc.id}`,
+        id: `act_${d.id}`,
         type: "document",
-        title: doc.title,
-        description: "Document draft synced to workspace cloud",
-        author: "Team",
-        timestamp: new Date(doc.updatedAt).toISOString(),
-        link: `/documents/${doc.id}`,
-        badge: "Doc",
+        title: d.title,
+        description: `Updated document notes`,
+        author: "Collaborator",
+        timestamp: new Date(d.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        link: `/documents/${d.id}`,
+        badge: "Document",
       });
     }
 
-    // Map recordings
-    for (const rec of recentRecordings) {
+    for (const r of recentRecordings) {
       activities.push({
-        id: `act_${rec.id}`,
+        id: `act_${r.id}`,
         type: "recording",
-        title: rec.meetingTitle || "Meeting Recording",
-        description: `HD video replay available (${Math.floor((rec.durationSeconds || 0) / 60)}m ${Math.floor((rec.durationSeconds || 0) % 60)}s)`,
-        author: "AI Recorder",
-        timestamp: new Date(rec.createdAt).toISOString(),
+        title: r.title,
+        description: `Duration: ${Math.floor(r.durationSeconds / 60)}m ${r.durationSeconds % 60}s`,
+        author: "Kollab Cloud",
+        timestamp: new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         link: "/recordings",
-        badge: "Replay",
+        badge: "Recording",
       });
     }
 
-    // Sort all activities chronologically desc
-    activities.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    return NextResponse.json({
-      success: true,
-      count: activities.length,
-      activities: activities.slice(0, 6),
-      lastUpdated: new Date().toISOString(),
-    });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ activities });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

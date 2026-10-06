@@ -36,21 +36,21 @@ export function LandingFaq() {
         return (
           <div
             key={idx}
-            className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs overflow-hidden transition-all"
+            className="rounded-2xl bg-slate-900/80 border border-white/10 shadow-lg backdrop-blur-xl overflow-hidden transition-all hover:border-cyan-400/40"
           >
             <button
               onClick={() => setOpenIndex(isOpen ? null : idx)}
-              className="w-full p-5 text-left flex items-center justify-between gap-4 font-bold text-sm text-slate-900 hover:text-indigo-600 transition-colors"
+              className="w-full p-5 text-left flex items-center justify-between gap-4 font-bold text-sm text-white hover:text-cyan-300 transition-colors cursor-pointer"
             >
               <span>{faq.q}</span>
               <ChevronDown
-                className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                  isOpen ? "rotate-180 text-indigo-600" : ""
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                  isOpen ? "rotate-180 text-cyan-400" : "text-slate-400"
                 }`}
               />
             </button>
             {isOpen && (
-              <div className="px-5 pb-5 pt-1 text-xs text-slate-600 leading-relaxed border-t border-slate-50 animate-in fade-in duration-200">
+              <div className="px-5 pb-5 pt-1 text-xs text-slate-300 leading-relaxed border-t border-white/10 animate-in fade-in duration-200">
                 {faq.a}
               </div>
             )}

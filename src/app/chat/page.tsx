@@ -22,7 +22,9 @@ import {
   Check,
   Loader2,
   Wand2,
+  Trash2,
 } from "lucide-react";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function ChatPage() {
   const [channels, setChannels] = useState<any[]>([]);
@@ -63,26 +65,71 @@ export default function ChatPage() {
       .catch(() => {});
   }, []);
 
-  // Load and live-poll messages for active channel in real-time
+  // Load messages initially on channel switch
   useEffect(() => {
     setLoadingMessages(true);
-    const fetchMessages = (isPolling = false) => {
-      fetch(`/api/chat/${activeChannelId}/messages`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.messages) setMessages(d.messages);
-          if (!isPolling) setLoadingMessages(false);
-        })
-        .catch(() => {
-          if (!isPolling) setLoadingMessages(false);
-        });
-    };
-
-    fetchMessages(false);
-    const pollInterval = setInterval(() => fetchMessages(true), 2500);
-
-    return () => clearInterval(pollInterval);
+    fetch(`/api/chat/${activeChannelId}/messages`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.messages) setMessages(d.messages);
+        setLoadingMessages(false);
+      })
+      .catch(() => {
+        setLoadingMessages(false);
+      });
   }, [activeChannelId]);
+
+  // Real-time SSE subscription (no polling)
+  useRealtime({
+    channelId: activeChannelId,
+    onEvent: (event) => {
+      if (event.type === "message.created") {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === event.payload.message.id)) return prev;
+          return [...prev, event.payload.message];
+        });
+      } else if (event.type === "message.updated") {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === event.payload.messageId
+              ? { ...m, messageText: event.payload.messageText, updatedAt: event.payload.updatedAt }
+              : m
+          )
+        );
+      } else if (event.type === "message.deleted") {
+        setMessages((prev) => prev.filter((m) => m.id !== event.payload.messageId));
+      } else if (event.type === "reaction.created" || event.type === "reaction.deleted") {
+        fetch(`/api/chat/${activeChannelId}/messages`)
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.messages) setMessages(d.messages);
+          });
+      } else if (event.type === "channel.created") {
+        setChannels((prev) => {
+          if (prev.some((c) => c.id === event.payload.channel.id)) return prev;
+          return [...prev, event.payload.channel];
+        });
+      }
+    },
+  });
+
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    try {
+      await fetch(`/api/chat/${activeChannelId}/messages/${messageId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+    } catch {}
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await fetch(`/api/chat/${activeChannelId}/messages?messageId=${messageId}`, {
+        method: "DELETE",
+      });
+    } catch {}
+  };
 
   // Scroll to bottom on messages update
   useEffect(() => {
@@ -305,6 +352,45 @@ export default function ChatPage() {
                     <p className="text-xs text-slate-700 mt-1 leading-relaxed whitespace-pre-wrap">
                       {m.messageText}
                     </p>
+
+                    {/* Reactions display and quick action bar */}
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      {m.reactions && m.reactions.length > 0 && (
+                        m.reactions.map((r: any, ri: number) => (
+                          <button
+                            key={ri}
+                            type="button"
+                            onClick={() => handleToggleReaction(m.id, r.emoji)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-[11px] text-slate-700 border border-slate-200/60 transition-colors"
+                          >
+                            <span>{r.emoji}</span>
+                            <span className="font-semibold text-[10px]">{r.count}</span>
+                          </button>
+                        ))
+                      )}
+
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-1">
+                        {["👍", "❤️", "🚀", "🎉"].map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => handleToggleReaction(m.id, emoji)}
+                            className="w-5 h-5 flex items-center justify-center rounded hover:bg-slate-100 text-xs transition-colors"
+                            title={`React with ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(m.id)}
+                          className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors ml-1"
+                          title="Delete message"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))

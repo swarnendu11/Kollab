@@ -1,0 +1,42 @@
+name: Kollab Enterprise CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    name: Lint, Typecheck, Test, and Build
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      BETTER_AUTH_SECRET: ci_test_better_auth_secret_32_bytes_long
+      STORAGE_SECRET: ci_test_storage_secret_key_32_bytes_long
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint codebase
+        run: npm run lint
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Run unit & integration tests
+        run: npm test
+
+      - name: Build Next.js application
+        run: npm run build

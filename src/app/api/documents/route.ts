@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { documents, users } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth";
-import { desc, eq } from "drizzle-orm";
+import { documents, users, documentVersions } from "@/db/schema";
+import { requireAuth, requireResourceAccess, handleApiError } from "@/lib/auth";
+import { desc, eq, and } from "drizzle-orm";
+import { createId } from "@/lib/id";
+import { logAuditEvent } from "@/lib/audit";
+import { realtimeHub } from "@/lib/realtime";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    const user = await requireAuth();
     const db = await getDb();
+
     const result = await db
       .select({
         id: documents.id,
@@ -26,26 +28,29 @@ export async function GET() {
       })
       .from(documents)
       .leftJoin(users, eq(documents.authorId, users.id))
+      .where(eq(documents.organizationId, user.organizationId))
       .orderBy(desc(documents.updatedAt));
 
     return NextResponse.json({ documents: result });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireAuth();
+    await requireResourceAccess({
+      resourceType: "document",
+      organizationId: user.organizationId,
+      requiredPermission: "documents:create",
+    });
 
     const body = await req.json();
     const { title, content, templateType = "general" } = body;
 
     const db = await getDb();
-    const docId = `doc_${Date.now()}`;
+    const docId = createId("doc");
 
     let defaultContent = content || "";
     if (!defaultContent) {
@@ -62,9 +67,9 @@ export async function POST(req: Request) {
 
     const newDoc = {
       id: docId,
-      organizationId: "org_kollab",
+      organizationId: user.organizationId,
       authorId: user.id,
-      title: title || "Untitled Document",
+      title: title?.trim() || "Untitled Document",
       content: defaultContent,
       templateType,
       isPublic: false,
@@ -74,8 +79,28 @@ export async function POST(req: Request) {
 
     await db.insert(documents).values(newDoc);
 
+    // Initial version entry
+    await db.insert(documentVersions).values({
+      id: createId("docv"),
+      documentId: docId,
+      versionNumber: 1,
+      content: defaultContent,
+      savedBy: user.id,
+      createdAt: new Date(),
+    });
+
+    await logAuditEvent({
+      organizationId: user.organizationId,
+      actorId: user.id,
+      actorName: user.fullName,
+      action: "document.created",
+      resourceType: "document",
+      resourceId: docId,
+      metadata: { title: newDoc.title, templateType },
+    });
+
     return NextResponse.json({ success: true, document: newDoc });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

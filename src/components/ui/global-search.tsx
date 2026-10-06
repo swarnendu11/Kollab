@@ -35,7 +35,50 @@ export function GlobalSearchModal({
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [dynamicResults, setDynamicResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) {
+      setDynamicResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLoading(true);
+      fetch(`/api/search?q=${encodeURIComponent(query.trim())}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.results) {
+            const mapped: SearchResult[] = d.results.map((r: any) => {
+              let icon = Search;
+              if (r.category === "meeting") icon = Video;
+              else if (r.category === "chat") icon = MessageSquare;
+              else if (r.category === "document") icon = FileText;
+              else if (r.category === "file") icon = HardDrive;
+              else if (r.category === "recording") icon = Film;
+              else if (r.category === "task") icon = Sparkles;
+              else if (r.category === "transcript") icon = Film;
+
+              return {
+                id: r.id,
+                category: r.category,
+                title: r.title,
+                subtitle: r.snippet,
+                url: r.url,
+                icon,
+              };
+            });
+            setDynamicResults(mapped);
+          }
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -128,6 +171,8 @@ export function GlobalSearchModal({
 
   const filtered = query.trim() === ""
     ? items
+    : dynamicResults.length > 0
+    ? dynamicResults
     : items.filter(
         (item) =>
           item.title.toLowerCase().includes(query.toLowerCase()) ||

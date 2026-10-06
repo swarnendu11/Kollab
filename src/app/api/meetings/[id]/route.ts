@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { meetings, users, meetingParticipants } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { requireAuth, requireResourceAccess, handleApiError } from "@/lib/auth";
+import { eq, and, or } from "drizzle-orm";
+import { realtimeHub } from "@/lib/realtime";
+import { logAuditEvent } from "@/lib/audit";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
     const { id } = await params;
     const db = await getDb();
 
@@ -16,6 +21,7 @@ export async function GET(
     const meetingQuery = await db
       .select({
         id: meetings.id,
+        organizationId: meetings.organizationId,
         title: meetings.title,
         description: meetings.description,
         hostId: meetings.hostId,
@@ -36,34 +42,36 @@ export async function GET(
       })
       .from(meetings)
       .leftJoin(users, eq(meetings.hostId, users.id))
-      .where(eq(meetings.id, id))
+      .where(
+        or(
+          eq(meetings.id, id),
+          eq(meetings.joinCode, id)
+        )
+      )
       .limit(1);
 
     if (meetingQuery.length === 0) {
-      // Try by joinCode
-      const byCode = await db
-        .select()
-        .from(meetings)
-        .where(eq(meetings.joinCode, id))
-        .limit(1);
+      return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+    }
 
-      if (byCode.length === 0) {
-        return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
-      }
-      return NextResponse.json({ meeting: byCode[0] });
+    const meeting = meetingQuery[0];
+
+    // Enforce organization tenancy unless user is invited or has matching code in same org
+    if (meeting.organizationId && meeting.organizationId !== user.organizationId) {
+      return NextResponse.json({ error: "Access denied: Meeting belongs to another workspace" }, { status: 403 });
     }
 
     const participants = await db
       .select()
       .from(meetingParticipants)
-      .where(eq(meetingParticipants.meetingId, meetingQuery[0].id));
+      .where(eq(meetingParticipants.meetingId, meeting.id));
 
     return NextResponse.json({
-      meeting: meetingQuery[0],
+      meeting,
       participants,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -72,33 +80,130 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    const user = await requireAuth();
     const { id } = await params;
     const body = await req.json();
 
     const db = await getDb();
+    const existing = await db
+      .select()
+      .from(meetings)
+      .where(
+        or(
+          eq(meetings.id, id),
+          eq(meetings.joinCode, id)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+    }
+
+    const meeting = existing[0];
+
+    // Authorize: Host, Admin, or Owner
+    if (meeting.hostId !== user.id && user.role !== "admin" && user.role !== "owner") {
+      return NextResponse.json({ error: "Only the meeting host or workspace admin can modify meeting settings" }, { status: 403 });
+    }
 
     const updateData: any = {};
     if (body.status) {
       updateData.status = body.status;
-      if (body.status === "live") updateData.actualStart = new Date();
-      if (body.status === "ended") updateData.actualEnd = new Date();
+      if (body.status === "live") {
+        updateData.actualStart = new Date();
+        realtimeHub.broadcast({
+          id: `rt_${Date.now()}`,
+          type: "meeting.started",
+          organizationId: user.organizationId,
+          timestamp: new Date().toISOString(),
+          payload: { meetingId: meeting.id, title: meeting.title },
+        });
+      }
+      if (body.status === "ended") {
+        updateData.actualEnd = new Date();
+        realtimeHub.broadcast({
+          id: `rt_${Date.now()}`,
+          type: "meeting.ended",
+          organizationId: user.organizationId,
+          timestamp: new Date().toISOString(),
+          payload: { meetingId: meeting.id, title: meeting.title },
+        });
+      }
     }
-    if (body.title) updateData.title = body.title;
+    if (body.title) updateData.title = body.title.trim();
     if (body.description !== undefined) updateData.description = body.description;
-    if (body.waitingRoomEnabled !== undefined) updateData.waitingRoomEnabled = body.waitingRoomEnabled;
-    if (body.recordingEnabled !== undefined) updateData.recordingEnabled = body.recordingEnabled;
-    if (body.chatEnabled !== undefined) updateData.chatEnabled = body.chatEnabled;
-    if (body.screenShareEnabled !== undefined) updateData.screenShareEnabled = body.screenShareEnabled;
+    if (body.waitingRoomEnabled !== undefined) updateData.waitingRoomEnabled = Boolean(body.waitingRoomEnabled);
+    if (body.recordingEnabled !== undefined) updateData.recordingEnabled = Boolean(body.recordingEnabled);
+    if (body.chatEnabled !== undefined) updateData.chatEnabled = Boolean(body.chatEnabled);
+    if (body.screenShareEnabled !== undefined) updateData.screenShareEnabled = Boolean(body.screenShareEnabled);
 
-    await db.update(meetings).set(updateData).where(eq(meetings.id, id));
+    await db.update(meetings).set(updateData).where(eq(meetings.id, meeting.id));
+
+    await logAuditEvent({
+      organizationId: user.organizationId,
+      actorId: user.id,
+      actorName: user.fullName,
+      action: "meeting.updated",
+      resourceType: "meeting",
+      resourceId: meeting.id,
+      metadata: updateData,
+    });
 
     return NextResponse.json({ success: true, updated: updateData });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireAuth();
+    const { id } = await params;
+    const db = await getDb();
+
+    const existing = await db
+      .select()
+      .from(meetings)
+      .where(
+        or(
+          eq(meetings.id, id),
+          eq(meetings.joinCode, id)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+    }
+
+    const meeting = existing[0];
+
+    await requireResourceAccess({
+      resourceType: "meeting",
+      resourceId: meeting.id,
+      organizationId: user.organizationId,
+      ownerId: meeting.hostId,
+      requiredPermission: "meetings:delete",
+    });
+
+    await db.delete(meetings).where(eq(meetings.id, meeting.id));
+
+    await logAuditEvent({
+      organizationId: user.organizationId,
+      actorId: user.id,
+      actorName: user.fullName,
+      action: "meeting.deleted",
+      resourceType: "meeting",
+      resourceId: meeting.id,
+      metadata: { title: meeting.title },
+    });
+
+    return NextResponse.json({ success: true, id: meeting.id });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

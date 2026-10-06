@@ -15,7 +15,7 @@ import { KollabLogo } from "@/components/ui/kollab-logo";
 
 export function Footer() {
   return (
-    <footer className="bg-[#051811] text-emerald-100/80 border-t border-emerald-950 text-xs select-none">
+    <footer className="bg-slate-950/90 text-slate-300 border-t border-white/10 text-xs select-none backdrop-blur-2xl">
       {/* Main Footer Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12">
@@ -23,11 +23,11 @@ export function Footer() {
           <div className="col-span-2 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
               <KollabLogo size={36} />
-              <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-emerald-400 transition-colors">
+              <span className="font-extrabold text-xl tracking-tight text-white group-hover:text-cyan-400 transition-colors">
                 KOLLAB
               </span>
             </Link>
-            <p className="text-emerald-300/70 text-xs sm:text-sm leading-relaxed max-w-sm">
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-sm">
               Unified communication and collaboration platform. Crystal-clear video meetings, team chat, shared documents, whiteboards, and intelligent workspace summaries.
             </p>
             <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-semibold pt-1">
@@ -156,19 +156,19 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-emerald-900/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-emerald-400/60">
+        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} Kollab, Inc. All rights reserved.</span>
           </div>
 
           <div className="flex items-center gap-6">
-            <Link href="/security" className="hover:text-emerald-300 transition-colors">
+            <Link href="/security" className="hover:text-cyan-300 transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/security" className="hover:text-emerald-300 transition-colors">
+            <Link href="/security" className="hover:text-cyan-300 transition-colors">
               Terms of Service
             </Link>
-            <Link href="/security" className="hover:text-emerald-300 transition-colors">
+            <Link href="/security" className="hover:text-cyan-300 transition-colors">
               Security Compliance
             </Link>
           </div>

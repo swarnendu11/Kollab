@@ -15,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KollabLogo } from "@/components/ui/kollab-logo";
-import { authClient } from "@/lib/auth-client";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -42,14 +41,20 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const { data, error: authError } = await authClient.signUp.email({
-        name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        password,
+      const res = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "signup",
+          fullName: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       });
 
-      if (authError) {
-        throw new Error(authError.message || "Failed to create account");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create account");
       }
 
       router.push("/dashboard");

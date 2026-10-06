@@ -33,6 +33,7 @@ export const organizationMembers = pgTable("organization_members", {
 // Meetings
 export const meetings = pgTable("meetings", {
   id: text("id").primaryKey(),
+  organizationId: text("organization_id").references(() => organizations.id),
   title: text("title").notNull(),
   description: text("description"),
   hostId: text("host_id").notNull().references(() => users.id),
@@ -101,6 +102,7 @@ export const meetingSettings = pgTable("meeting_settings", {
 // Recordings & Transcripts
 export const recordings = pgTable("recordings", {
   id: text("id").primaryKey(),
+  organizationId: text("organization_id").references(() => organizations.id),
   meetingId: text("meeting_id").references(() => meetings.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   durationSeconds: integer("duration_seconds").default(0).notNull(),
@@ -378,3 +380,54 @@ export const subscriptions = pgTable("subscriptions", {
   status: text("status").default("active").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
 });
+
+// Tasks & Action Items Tracking
+export const tasks = pgTable("tasks", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  meetingId: text("meeting_id").references(() => meetings.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  ownerId: text("owner_id").references(() => users.id, { onDelete: "set null" }),
+  ownerName: text("owner_name").notNull(),
+  creatorId: text("creator_id").references(() => users.id, { onDelete: "set null" }),
+  dueDate: text("due_date"),
+  priority: text("priority").default("medium").notNull(), // 'low' | 'medium' | 'high' | 'urgent'
+  status: text("status").default("todo").notNull(), // 'todo' | 'in_progress' | 'done' | 'cancelled'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("tasks_org_idx").on(table.organizationId),
+  index("tasks_owner_idx").on(table.ownerId),
+]);
+
+// Immutable Audit Logs
+export const auditLogs = pgTable("audit_logs", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+  actorName: text("actor_name").notNull(),
+  action: text("action").notNull(),
+  resourceType: text("resource_type").notNull(),
+  resourceId: text("resource_id"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default({}),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+}, (table) => [
+  index("audit_org_idx").on(table.organizationId),
+  index("audit_action_idx").on(table.action),
+]);
+
+// Workspace Usage Metering
+export const workspaceUsage = pgTable("workspace_usage", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull().unique().references(() => organizations.id, { onDelete: "cascade" }),
+  storageBytes: integer("storage_bytes").default(0).notNull(),
+  recordingMinutes: integer("recording_minutes").default(0).notNull(),
+  meetingMinutes: integer("meeting_minutes").default(0).notNull(),
+  aiUsageCount: integer("ai_usage_count").default(0).notNull(),
+  transcriptMinutes: integer("transcript_minutes").default(0).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+

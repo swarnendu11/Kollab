@@ -122,19 +122,22 @@ export function NavbarAuth({ className }: NavbarAuthProps) {
   return (
     <div className={`flex items-center gap-2 ${className || ""}`}>
       <Link href="/sign-in" className="inline-flex shrink-0">
-        <Button
-          variant="ghost"
-          className="font-semibold text-slate-700 hover:text-emerald-950 hover:bg-emerald-50 rounded-xl px-3.5 h-9 text-xs inline-flex items-center justify-center gap-1.5 shrink-0"
+        <button
+          type="button"
+          className="bg-white/10 hover:bg-white/20 text-white border border-white/25 rounded-xl px-4 h-9 text-xs font-bold gap-1.5 inline-flex items-center justify-center shrink-0 shadow-sm transition-all cursor-pointer"
         >
-          <LogIn className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span>Sign In</span>
-        </Button>
+          <LogIn className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+          <span className="text-white font-extrabold">Sign In</span>
+        </button>
       </Link>
       <Link href="/sign-up" className="inline-flex shrink-0">
-        <Button className="bg-[#10B981] hover:bg-[#059669] text-white shadow-md shadow-emerald-600/25 rounded-xl px-4 h-9 text-xs font-bold gap-1.5 inline-flex items-center justify-center shrink-0">
-          <UserPlus className="w-3.5 h-3.5 shrink-0" />
-          <span>Sign Up</span>
-        </Button>
+        <button
+          type="button"
+          className="bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/40 rounded-xl px-4 h-9 text-xs font-black gap-1.5 inline-flex items-center justify-center shrink-0 transition-transform hover:scale-105 cursor-pointer"
+        >
+          <UserPlus className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+          <span className="font-black text-slate-950">Sign Up</span>
+        </button>
       </Link>
     </div>
   );

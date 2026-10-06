@@ -47,9 +47,9 @@ export function StackComparison() {
   ];
 
   return (
-    <div className="rounded-3xl bg-white border border-slate-200/80 shadow-xl overflow-hidden">
+    <div className="rounded-3xl bg-slate-900/80 backdrop-blur-2xl border border-white/15 shadow-2xl overflow-hidden">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold mb-2 border border-indigo-400/30">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
@@ -72,14 +72,14 @@ export function StackComparison() {
       </div>
 
       {/* Comparison Grid */}
-      <div className="divide-y divide-slate-100">
-        <div className="grid grid-cols-1 md:grid-cols-12 bg-slate-50/80 px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+      <div className="divide-y divide-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-12 bg-white/[0.04] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-white/10">
           <div className="md:col-span-4">Capability</div>
-          <div className="md:col-span-4 text-emerald-700 font-extrabold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <div className="md:col-span-4 text-emerald-400 font-extrabold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>Kollab All-In-One</span>
           </div>
-          <div className="md:col-span-4 text-slate-500">Legacy 5-Tool Stack</div>
+          <div className="md:col-span-4 text-slate-400">Legacy 5-Tool Stack</div>
         </div>
 
         {comparisonItems.map((item, idx) => (
@@ -87,26 +87,26 @@ export function StackComparison() {
             key={idx}
             className={`grid grid-cols-1 md:grid-cols-12 px-6 py-4 items-center text-xs gap-2 sm:gap-4 transition-colors ${
               item.highlight
-                ? "bg-emerald-50/60 font-bold"
-                : "hover:bg-slate-50/60"
+                ? "bg-emerald-500/10 font-bold border-l-4 border-emerald-400"
+                : "hover:bg-white/[0.04]"
             }`}
           >
-            <div className="md:col-span-4 font-bold text-slate-900 flex items-center gap-2">
+            <div className="md:col-span-4 font-bold text-white flex items-center gap-2">
               <span>{item.feature}</span>
             </div>
 
-            <div className="md:col-span-4 font-semibold text-emerald-800 flex items-start gap-2">
-              <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="md:col-span-4 font-semibold text-emerald-300 flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
                 <Check className="w-3 h-3 stroke-[3]" />
               </div>
               <span>{item.kollab}</span>
             </div>
 
-            <div className="md:col-span-4 text-slate-500 flex items-start gap-2">
-              <div className="w-4 h-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="md:col-span-4 text-slate-400 flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0 mt-0.5">
                 <X className="w-3 h-3 stroke-[3]" />
               </div>
-              <span className="line-through decoration-rose-300">{item.legacy}</span>
+              <span className="line-through decoration-rose-400/60 text-slate-400">{item.legacy}</span>
             </div>
           </div>
         ))}

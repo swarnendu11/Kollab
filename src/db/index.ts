@@ -336,6 +336,56 @@ async function initializeTables(client: PGlite) {
       read BOOLEAN DEFAULT FALSE NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      meeting_id TEXT REFERENCES meetings(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      owner_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      owner_name TEXT NOT NULL,
+      creator_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      due_date TEXT,
+      priority TEXT DEFAULT 'medium' NOT NULL,
+      status TEXT DEFAULT 'todo' NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      actor_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      actor_name TEXT NOT NULL,
+      action TEXT NOT NULL,
+      resource_type TEXT NOT NULL,
+      resource_id TEXT,
+      metadata JSONB DEFAULT '{}',
+      ip_address TEXT,
+      user_agent TEXT,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS workspace_usage (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL UNIQUE REFERENCES organizations(id) ON DELETE CASCADE,
+      storage_bytes INTEGER DEFAULT 0 NOT NULL,
+      recording_minutes INTEGER DEFAULT 0 NOT NULL,
+      meeting_minutes INTEGER DEFAULT 0 NOT NULL,
+      ai_usage_count INTEGER DEFAULT 0 NOT NULL,
+      transcript_minutes INTEGER DEFAULT 0 NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+
+    -- Apply column additions if tables already existed
+    DO $$ BEGIN
+      ALTER TABLE meetings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);
+    EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+    DO $$ BEGIN
+      ALTER TABLE recordings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);
+    EXCEPTION WHEN OTHERS THEN NULL; END $$;
   `);
 
   // Check if workspace organization exists, if not seed workspace

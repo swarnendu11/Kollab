@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KollabLogo } from "@/components/ui/kollab-logo";
-import { authClient } from "@/lib/auth-client";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -29,13 +28,19 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const { data, error: authError } = await authClient.signIn.email({
-        email: email.trim().toLowerCase(),
-        password,
+      const res = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "signin",
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       });
 
-      if (authError) {
-        throw new Error(authError.message || "Sign in failed");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to sign in. Please check your credentials.");
       }
 
       router.push("/dashboard");

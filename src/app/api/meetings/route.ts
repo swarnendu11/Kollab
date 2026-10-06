@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { meetings, users, meetingParticipants } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAuth, requireResourceAccess, handleApiError } from "@/lib/auth";
 import { generateJoinCode } from "@/lib/utils";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
+import { createId } from "@/lib/id";
+import { realtimeHub } from "@/lib/realtime";
+import { logAuditEvent } from "@/lib/audit";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    const user = await requireAuth();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
@@ -19,6 +20,7 @@ export async function GET(req: Request) {
     let query = db
       .select({
         id: meetings.id,
+        organizationId: meetings.organizationId,
         title: meetings.title,
         description: meetings.description,
         hostId: meetings.hostId,
@@ -39,23 +41,26 @@ export async function GET(req: Request) {
       })
       .from(meetings)
       .leftJoin(users, eq(meetings.hostId, users.id))
+      .where(eq(meetings.organizationId, user.organizationId))
       .orderBy(desc(meetings.createdAt));
 
     const result = await query;
     const filtered = status ? result.filter((m: any) => m.status === status) : result;
 
     return NextResponse.json({ meetings: filtered });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireAuth();
+    await requireResourceAccess({
+      resourceType: "meeting",
+      organizationId: user.organizationId,
+      requiredPermission: "meetings:create",
+    });
 
     const body = await req.json();
     const {
@@ -74,19 +79,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Meeting title is required" }, { status: 400 });
     }
 
-    const meetingId = `meet_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const meetingId = createId("meet");
     const joinCode = generateJoinCode();
     const roomName = `room_${joinCode.replace(/-/g, "_")}`;
 
-    const db = await getDb();
     const newMeeting = {
       id: meetingId,
+      organizationId: user.organizationId,
       title: title.trim(),
       description: description || null,
       hostId: user.id,
-      scheduledStart: scheduledStart ? new Date(scheduledStart) : isInstant ? new Date() : new Date(),
-      scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : new Date(Date.now() + 3600000),
+      scheduledStart: scheduledStart ? new Date(scheduledStart) : isInstant ? new Date() : null,
+      scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
       actualStart: isInstant ? new Date() : null,
+      actualEnd: null,
       status: isInstant ? "live" : "scheduled",
       passcode: null,
       joinCode,
@@ -98,11 +104,12 @@ export async function POST(req: Request) {
       createdAt: new Date(),
     };
 
+    const db = await getDb();
     await db.insert(meetings).values(newMeeting);
 
-    // Register host as participant
+    // Add host as participant
     await db.insert(meetingParticipants).values({
-      id: `mp_${Date.now()}`,
+      id: createId("mp"),
       meetingId,
       userId: user.id,
       displayName: user.fullName,
@@ -113,8 +120,31 @@ export async function POST(req: Request) {
       joinedAt: new Date(),
     });
 
-    return NextResponse.json({ success: true, meeting: newMeeting });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (isInstant) {
+      realtimeHub.broadcast({
+        id: `rt_${Date.now()}`,
+        type: "meeting.started",
+        organizationId: user.organizationId,
+        timestamp: new Date().toISOString(),
+        payload: { meetingId, title: newMeeting.title, joinCode },
+      });
+    }
+
+    await logAuditEvent({
+      organizationId: user.organizationId,
+      actorId: user.id,
+      actorName: user.fullName,
+      action: "meeting.created",
+      resourceType: "meeting",
+      resourceId: meetingId,
+      metadata: { title: newMeeting.title, isInstant, joinCode },
+    });
+
+    return NextResponse.json({
+      success: true,
+      meeting: newMeeting,
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

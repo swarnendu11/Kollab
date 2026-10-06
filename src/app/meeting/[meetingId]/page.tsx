@@ -37,6 +37,8 @@ import {
   Trash2,
   Pen,
   Download,
+  Loader2,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { KollabLogo } from "@/components/ui/kollab-logo";
 import { formatDuration } from "@/lib/utils";
 import { ShareQrModal } from "@/components/ui/share-qr-modal";
+import { useRealtime } from "@/lib/use-realtime";
 
 interface MeetingParticipant {
   id: string;
@@ -85,11 +88,16 @@ export default function MeetingRoomPage() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   // Layout & Drawers
-  const [activePanel, setActivePanel] = useState<"none" | "chat" | "participants" | "settings" | "whiteboard">("none");
+  const [activePanel, setActivePanel] = useState<"none" | "chat" | "participants" | "settings" | "whiteboard" | "copilot">("none");
   const [viewMode, setViewMode] = useState<"grid" | "speaker">("grid");
   const [pinnedParticipantId, setPinnedParticipantId] = useState<string | null>(null);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  // In-Meeting AI Copilot
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [copilotLoading, setCopilotLoading] = useState(false);
+  const [copilotAnswers, setCopilotAnswers] = useState<Array<{ id: string; question: string; answer: string; time: string }>>([]);
 
   // In-Meeting Whiteboard & Scratchpad State
   const wbCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -129,19 +137,14 @@ export default function MeetingRoomPage() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [telemetry, setTelemetry] = useState<any>(null);
 
-  // Poll real-time dynamic AV telemetry every 1.5 seconds
+  // Load telemetry metrics
   useEffect(() => {
-    const fetchTelemetry = () => {
-      fetch("/api/telemetry")
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.success) setTelemetry(d);
-        })
-        .catch(() => {});
-    };
-    fetchTelemetry();
-    const tInterval = setInterval(fetchTelemetry, 1500);
-    return () => clearInterval(tInterval);
+    fetch("/api/telemetry")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setTelemetry(d);
+      })
+      .catch(() => {});
   }, []);
 
   // Initialize Meeting Details & Timer
@@ -200,20 +203,28 @@ export default function MeetingRoomPage() {
     return () => clearInterval(interval);
   }, [meetingId]);
 
-  // Poll in-meeting chat messages from real database every 2 seconds
+  // Initial fetch for in-meeting chat
   useEffect(() => {
-    const fetchChatMessages = () => {
-      fetch(`/api/meetings/${meetingId}/messages`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.messages) setMessages(d.messages);
-        })
-        .catch(() => {});
-    };
-    fetchChatMessages();
-    const msgInterval = setInterval(fetchChatMessages, 2000);
-    return () => clearInterval(msgInterval);
+    fetch(`/api/meetings/${meetingId}/messages`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.messages) setMessages(d.messages);
+      })
+      .catch(() => {});
   }, [meetingId]);
+
+  // Realtime subscription for meeting room messages & status
+  useRealtime({
+    channelId: `meeting_${meetingId}`,
+    onMessage: (evt) => {
+      if (evt.event === "meeting.message.created" && evt.data) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === evt.data.id)) return prev;
+          return [...prev, evt.data];
+        });
+      }
+    },
+  });
 
   // Read prejoin preferences if available
   useEffect(() => {
@@ -383,34 +394,38 @@ export default function MeetingRoomPage() {
     }
   };
 
-  // Real Recording using MediaRecorder API
+  // Real Recording using MediaRecorder API & Object Storage
   const toggleRecording = async () => {
     if (isRecording) {
       // Stop recording and save
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.onstop = async () => {
+          try {
+            const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+            recordedChunksRef.current = [];
+            const formData = new FormData();
+            formData.append("meetingId", meetingId);
+            formData.append("title", `${meeting.title || "Meeting"} - Session Recording`);
+            formData.append("durationSeconds", String(recordingSeconds || 1));
+            formData.append("file", blob, `meeting-${meetingId}.webm`);
+
+            await fetch("/api/recordings", {
+              method: "POST",
+              body: formData,
+            });
+          } catch (e) {
+            console.error("Failed to upload recording blob:", e);
+          }
+        };
         mediaRecorderRef.current.stop();
       }
       setIsRecording(false);
-
-      // Save recording to backend
-      try {
-        await fetch("/api/recordings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            meetingId,
-            title: `${meeting.title} - Session Recording`,
-            durationSeconds: recordingSeconds,
-          }),
-        });
-      } catch (e) {
-        console.error(e);
-      }
     } else {
       // Start recording local or screen stream
       try {
         const streamToRecord = screenStreamRef.current || mediaStreamRef.current;
         if (streamToRecord) {
+          recordedChunksRef.current = [];
           const recorder = new MediaRecorder(streamToRecord, {
             mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
               ? "video/webm;codecs=vp9"
@@ -418,7 +433,7 @@ export default function MeetingRoomPage() {
           });
 
           recorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
+            if (event.data && event.data.size > 0) {
               recordedChunksRef.current.push(event.data);
             }
           };
@@ -430,7 +445,7 @@ export default function MeetingRoomPage() {
           setIsRecording(true);
         }
       } catch (err) {
-        console.warn("MediaRecorder start failed, falling back to simulated session recording:", err);
+        console.warn("MediaRecorder start failed, falling back to session recording:", err);
         setIsRecording(true);
       }
     }
@@ -553,6 +568,41 @@ export default function MeetingRoomPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Ask In-Meeting AI Copilot
+  const handleAskCopilot = async (question: string) => {
+    const q = question.trim();
+    if (!q || copilotLoading) return;
+    setCopilotLoading(true);
+    try {
+      const res = await fetch("/api/ai/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          meetingId,
+          prompt: q,
+          context: currentCaption ? `Live spoken context: ${currentCaption}` : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.answer) {
+        setCopilotAnswers((prev) => [
+          ...prev,
+          {
+            id: `copilot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            question: q,
+            answer: data.answer,
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        setCopilotQuery("");
+      }
+    } catch (err) {
+      console.error("AI Copilot request failed:", err);
+    } finally {
+      setCopilotLoading(false);
     }
   };
 
@@ -1141,6 +1191,112 @@ export default function MeetingRoomPage() {
             </div>
           </aside>
         )}
+
+        {/* E. IN-MEETING AI COPILOT DRAWER */}
+        {activePanel === "copilot" && (
+          <aside className="w-80 sm:w-96 bg-slate-900 border-l border-slate-800 flex flex-col h-full z-20 animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <span className="font-bold text-sm text-white">AI Meeting Copilot</span>
+              </div>
+              <button
+                onClick={() => setActivePanel("none")}
+                className="p-1 text-slate-400 hover:text-white rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Prompt Pills */}
+            <div className="p-3 border-b border-slate-800/80 bg-slate-950/40">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Quick Copilot Questions
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "What have we decided?",
+                  "What are the unresolved questions?",
+                  "What are my action items?",
+                  "Summarize the last 10 minutes",
+                  "What risks were mentioned?",
+                  "Create tasks from this meeting",
+                ].map((promptText) => (
+                  <button
+                    key={promptText}
+                    onClick={() => handleAskCopilot(promptText)}
+                    disabled={copilotLoading}
+                    className="text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg px-2.5 py-1 text-left transition-colors"
+                  >
+                    {promptText}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Copilot Q&A History */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3">
+              {copilotAnswers.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-2">
+                  <Sparkles className="w-8 h-8 text-purple-400/60 animate-pulse" />
+                  <p className="text-xs font-medium text-slate-300">Ask the Copilot anything about this meeting</p>
+                  <p className="text-[11px] text-slate-500">
+                    The Copilot uses real-time spoken captions and transcript intelligence to extract decisions, risks, and tasks.
+                  </p>
+                </div>
+              ) : (
+                copilotAnswers.map((item) => (
+                  <div key={item.id} className="space-y-2">
+                    <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-900/40 text-xs">
+                      <div className="text-[10px] text-purple-400 font-semibold mb-0.5">You asked:</div>
+                      <div className="text-slate-200">{item.question}</div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-xs text-slate-200 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                        <span className="font-semibold text-purple-300 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" /> Copilot
+                        </span>
+                        <span>{item.time}</span>
+                      </div>
+                      <div className="whitespace-pre-line leading-relaxed">{item.answer}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {copilotLoading && (
+                <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/40 flex items-center gap-2 text-xs text-purple-300">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Analyzing meeting transcript...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Chat form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAskCopilot(copilotQuery);
+              }}
+              className="p-3 border-t border-slate-800 flex gap-2 bg-slate-950/60"
+            >
+              <Input
+                placeholder="Ask Copilot about decisions, tasks..."
+                value={copilotQuery}
+                onChange={(e) => setCopilotQuery(e.target.value)}
+                disabled={copilotLoading}
+                className="bg-slate-800 border-slate-700 text-xs text-white placeholder-slate-500"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={copilotLoading || !copilotQuery.trim()}
+                className="bg-purple-600 hover:bg-purple-700 shrink-0 shadow-sm shadow-purple-500/20 text-white"
+              >
+                <Sparkles className="w-4 h-4" />
+              </Button>
+            </form>
+          </aside>
+        )}
       </div>
 
       {/* 4. BOTTOM MEETING CONTROL BAR */}
@@ -1276,6 +1432,19 @@ export default function MeetingRoomPage() {
             title="Whiteboard & Notes"
           >
             <Paintbrush className="w-5 h-5" />
+          </button>
+
+          {/* AI Copilot Toggle */}
+          <button
+            onClick={() => setActivePanel(activePanel === "copilot" ? "none" : "copilot")}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+              activePanel === "copilot"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-500/30"
+                : "bg-slate-800 hover:bg-slate-700 text-purple-300"
+            }`}
+            title="AI Meeting Copilot"
+          >
+            <Sparkles className="w-5 h-5" />
           </button>
 
           {/* Chat Panel Toggle */}
