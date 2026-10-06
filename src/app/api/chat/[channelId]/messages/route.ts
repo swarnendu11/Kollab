@@ -25,8 +25,8 @@ export async function GET(
       .limit(1);
 
     if (channel.length === 0) {
-      // If default channel, allow access
-      if (!channelId.startsWith("channel_")) {
+      // Allow default workspace channels and direct message rooms
+      if (!channelId.startsWith("channel_") && !channelId.startsWith("dm_")) {
         return NextResponse.json({ error: "Channel not found in your workspace" }, { status: 404 });
       }
     }
@@ -38,9 +38,12 @@ export async function GET(
       .orderBy(asc(chatMessages.createdAt));
 
     // Fetch reactions for these messages
-    const reactions = await db
-      .select()
-      .from(chatReactions);
+    let reactions: any[] = [];
+    try {
+      reactions = await db.select().from(chatReactions);
+    } catch {
+      // Gracefully continue if reactions table is not yet ready
+    }
 
     const reactionMap: Record<string, { emoji: string; count: number; users: string[] }[]> = {};
     for (const r of reactions) {
@@ -148,6 +151,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, message: { ...newMessage, reactions: [] } });
   } catch (error) {
+    console.error("Messages POST error:", error);
     return handleApiError(error);
   }
 }

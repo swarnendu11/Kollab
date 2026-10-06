@@ -65,9 +65,15 @@ export default function DashboardPage() {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((d) => {
-        if (d.user) setUser(d.user);
+        if (d.user) {
+          setUser(d.user);
+        } else {
+          router.replace("/sign-in?redirect_url=/dashboard");
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        router.replace("/sign-in?redirect_url=/dashboard");
+      });
 
     fetch("/api/meetings?status=scheduled")
       .then((r) => r.json())

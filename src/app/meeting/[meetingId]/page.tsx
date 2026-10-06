@@ -136,6 +136,8 @@ export default function MeetingRoomPage() {
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [telemetry, setTelemetry] = useState<any>(null);
+  const livekitRoomRef = useRef<any>(null);
+  const [remoteVideoTracks, setRemoteVideoTracks] = useState<Record<string, MediaStreamTrack>>({});
 
   // Load telemetry metrics
   useEffect(() => {
@@ -279,6 +281,102 @@ export default function MeetingRoomPage() {
     };
   }, []);
 
+  // LiveKit WebRTC Room Connection
+  useEffect(() => {
+    let activeRoom: any = null;
+
+    async function initLiveKit() {
+      try {
+        const { Room, RoomEvent, Track } = await import("livekit-client");
+        const tokenRes = await fetch("/api/livekit/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roomName: `room_${meetingId}`,
+            participantName: currentUser?.fullName || "Participant",
+            isHost: true,
+          }),
+        });
+        const tokenData = await tokenRes.json();
+        if (!tokenData.token || !tokenData.url) return;
+
+        const room = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+        activeRoom = room;
+        livekitRoomRef.current = room;
+
+        room.on(RoomEvent.ParticipantConnected, (p: any) => {
+          setParticipants((prev) => {
+            if (prev.some((existing) => existing.id === p.identity)) return prev;
+            return [
+              ...prev,
+              {
+                id: p.identity,
+                name: p.name || "Remote Participant",
+                role: "participant",
+                avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.name || "P")}`,
+                isMuted: !p.isMicrophoneEnabled,
+                isCameraOff: !p.isCameraEnabled,
+                isHandRaised: false,
+                isSpeaking: p.isSpeaking,
+              },
+            ];
+          });
+        });
+
+        room.on(RoomEvent.ParticipantDisconnected, (p: any) => {
+          setParticipants((prev) => prev.filter((existing) => existing.id !== p.identity));
+          setRemoteVideoTracks((prev) => {
+            const next = { ...prev };
+            delete next[p.identity];
+            return next;
+          });
+        });
+
+        room.on(RoomEvent.TrackSubscribed, (track: any, publication: any, participant: any) => {
+          if (track.kind === Track.Kind.Video) {
+            setRemoteVideoTracks((prev) => ({
+              ...prev,
+              [participant.identity]: track.mediaStreamTrack,
+            }));
+          } else if (track.kind === Track.Kind.Audio) {
+            track.attach();
+          }
+        });
+
+        room.on(RoomEvent.TrackUnsubscribed, (track: any, publication: any, participant: any) => {
+          if (track.kind === Track.Kind.Video) {
+            setRemoteVideoTracks((prev) => {
+              const next = { ...prev };
+              delete next[participant.identity];
+              return next;
+            });
+          }
+        });
+
+        await room.connect(tokenData.url, tokenData.token);
+
+        try {
+          await room.localParticipant.enableCameraAndMicrophone();
+        } catch {}
+      } catch (err) {
+        console.warn("LiveKit connection notice:", err);
+      }
+    }
+
+    if (currentUser) {
+      initLiveKit();
+    }
+
+    return () => {
+      if (activeRoom) {
+        activeRoom.disconnect();
+      }
+    };
+  }, [meetingId, currentUser]);
+
   // Web Speech API for Realtime Captions
   useEffect(() => {
     if (!captionsEnabled) {
@@ -339,27 +437,31 @@ export default function MeetingRoomPage() {
 
   // Toggle Camera
   const toggleCamera = () => {
+    const nextState = !isCameraOn;
     if (mediaStreamRef.current) {
       const track = mediaStreamRef.current.getVideoTracks()[0];
       if (track) {
-        track.enabled = !track.enabled;
-        setIsCameraOn(track.enabled);
+        track.enabled = nextState;
       }
-    } else {
-      setIsCameraOn(!isCameraOn);
+    }
+    setIsCameraOn(nextState);
+    if (livekitRoomRef.current?.localParticipant) {
+      livekitRoomRef.current.localParticipant.setCameraEnabled(nextState).catch(() => {});
     }
   };
 
   // Toggle Mic
   const toggleMic = () => {
+    const nextState = !isMicOn;
     if (mediaStreamRef.current) {
       const track = mediaStreamRef.current.getAudioTracks()[0];
       if (track) {
-        track.enabled = !track.enabled;
-        setIsMicOn(track.enabled);
+        track.enabled = nextState;
       }
-    } else {
-      setIsMicOn(!isMicOn);
+    }
+    setIsMicOn(nextState);
+    if (livekitRoomRef.current?.localParticipant) {
+      livekitRoomRef.current.localParticipant.setMicrophoneEnabled(nextState).catch(() => {});
     }
   };
 
@@ -832,13 +934,28 @@ export default function MeetingRoomPage() {
                           </div>
                         )}
                       </>
-                    ) : (
-                      /* Remote Participants */
-                      <img
-                        src={p.avatar}
-                        alt={p.name}
+                    ) : remoteVideoTracks[p.id] ? (
+                      <video
+                        ref={(el) => {
+                          if (el && remoteVideoTracks[p.id]) {
+                            el.srcObject = new MediaStream([remoteVideoTracks[p.id]]);
+                          }
+                        }}
+                        autoPlay
+                        playsInline
                         className="w-full h-full object-cover"
                       />
+                    ) : (
+                      /* Remote Participant Avatar */
+                      <div className="flex flex-col items-center justify-center">
+                        <Avatar className="w-20 h-20 text-xl font-bold">
+                          <AvatarImage src={p.avatar} />
+                          <AvatarFallback className="bg-emerald-800 text-white font-bold">{p.name?.[0] || "U"}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-semibold text-slate-300 mt-3">
+                          {p.name}
+                        </span>
+                      </div>
                     )}
 
                     {/* Speaking indicator border badge */}

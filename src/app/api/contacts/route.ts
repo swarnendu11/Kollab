@@ -23,23 +23,73 @@ export async function POST(req: Request) {
   try {
     const user = await requireAuth();
     const body = await req.json();
-    const { contactName, contactEmail, phone = "" } = body;
+    const { contactName, contactEmail, contactUserId = null, phone = "" } = body;
 
     if (!contactName || !contactEmail) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
     }
 
     const db = await getDb();
+    const normalizedEmail = contactEmail.trim().toLowerCase();
+
+    // Check if already in user's contacts
+    const existing = await db
+      .select()
+      .from(contacts)
+      .where(
+        and(
+          eq(contacts.userId, user.id),
+          eq(contacts.contactEmail, normalizedEmail)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      return NextResponse.json({ success: true, contact: existing[0], alreadyExists: true });
+    }
+
+    // Look up if this contact corresponds to a registered user in Kollab
+    let matchedUserId = contactUserId;
+    let matchedAvatar = null;
+
+    if (!matchedUserId) {
+      const { users } = await import("@/db/schema");
+      const matched = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, normalizedEmail))
+        .limit(1);
+
+      if (matched.length > 0) {
+        matchedUserId = matched[0].id;
+        matchedAvatar = matched[0].avatarUrl;
+      }
+    } else {
+      const { users } = await import("@/db/schema");
+      const matched = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, matchedUserId))
+        .limit(1);
+
+      if (matched.length > 0) {
+        matchedAvatar = matched[0].avatarUrl;
+      }
+    }
+
     const contactId = createId("cont");
+    const avatar =
+      matchedAvatar ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(contactName.trim())}`;
 
     const newContact = {
       id: contactId,
       userId: user.id,
-      contactUserId: null,
+      contactUserId: matchedUserId,
       contactName: contactName.trim(),
-      contactEmail: contactEmail.trim().toLowerCase(),
-      contactAvatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(contactName)}`,
-      phone,
+      contactEmail: normalizedEmail,
+      contactAvatar: avatar,
+      phone: phone || "",
       status: "active",
       createdAt: new Date(),
     };

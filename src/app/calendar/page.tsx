@@ -31,6 +31,8 @@ export default function CalendarPage() {
   const [time, setTime] = useState("10:00");
   const [duration, setDuration] = useState("45");
   const [description, setDescription] = useState("");
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [selectedContactId, setSelectedContactId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -41,6 +43,13 @@ export default function CalendarPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    fetch("/api/contacts")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.contacts) setContacts(d.contacts);
+      })
+      .catch(() => {});
   }, []);
 
   const handleScheduleSubmit = async (e: React.FormEvent) => {
@@ -53,12 +62,17 @@ export default function CalendarPage() {
       const endTime = new Date(startTime.getTime() + parseInt(duration) * 60000);
 
       // Create meeting first
+      const invitedContact = contacts.find((c) => c.id === selectedContactId);
+      const meetingDesc = invitedContact
+        ? `${description ? description + "\n" : ""}Attendee: ${invitedContact.contactName} (${invitedContact.contactEmail})`
+        : description;
+
       const meetRes = await fetch("/api/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          description,
+          description: meetingDesc,
           scheduledStart: startTime,
           scheduledEnd: endTime,
         }),
@@ -71,7 +85,7 @@ export default function CalendarPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          description,
+          description: meetingDesc,
           startTime,
           endTime,
           meetingId: meetData.meeting?.id,
@@ -83,9 +97,36 @@ export default function CalendarPage() {
         setEvents((prev) => [...prev, { ...calData.event, meetingJoinCode: meetData.meeting?.joinCode }]);
       }
 
+      // Notify attendee in direct chat
+      if (invitedContact?.contactUserId) {
+        fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            isDirect: true,
+            recipientId: invitedContact.contactUserId,
+            name: invitedContact.contactName,
+          }),
+        })
+          .then((r) => r.json())
+          .then((cd) => {
+            if (cd.channel?.id) {
+              fetch(`/api/chat/${cd.channel.id}/messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  text: `📅 Scheduled meeting "${title.trim()}" for ${new Date(startTime).toLocaleString()}. Join Code: ${meetData.meeting?.joinCode}`,
+                }),
+              });
+            }
+          })
+          .catch(() => {});
+      }
+
       setIsScheduleOpen(false);
       setTitle("");
       setDescription("");
+      setSelectedContactId("");
     } catch (e) {
       console.error(e);
     } finally {
@@ -264,6 +305,24 @@ export default function CalendarPage() {
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Invite Colleague / Contact (optional)
+                </label>
+                <select
+                  value={selectedContactId}
+                  onChange={(e) => setSelectedContactId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-xs outline-none focus:border-emerald-500"
+                >
+                  <option value="">No specific contact (Open meeting)</option>
+                  {contacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.contactName} ({c.contactEmail})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

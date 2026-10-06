@@ -50,13 +50,49 @@ export function verifyPassword(password: string, storedHash: string): boolean {
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
-    const sessionUserId = cookieStore.get("kollab_user_id")?.value;
+    let sessionUserId = cookieStore.get("kollab_user_id")?.value;
 
+    const db = await getDb();
+
+    // 1. Check Clerk Authentication if no session cookie
+    if (!sessionUserId) {
+      try {
+        const { currentUser } = await import("@clerk/nextjs/server");
+        const clerkUser = await currentUser();
+        if (clerkUser) {
+          const email = clerkUser.emailAddresses?.[0]?.emailAddress || `${clerkUser.id}@clerk.user`;
+          const fullName = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || clerkUser.username || "Kollab User";
+          const avatarUrl = clerkUser.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
+
+          const existing = await db.select().from(users).where(eq(users.id, clerkUser.id)).limit(1);
+          if (existing.length === 0) {
+            const byEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+            if (byEmail.length > 0) {
+              sessionUserId = byEmail[0].id;
+            } else {
+              await db.insert(users).values({
+                id: clerkUser.id,
+                email,
+                fullName,
+                avatarUrl,
+                role: "admin",
+                status: "active",
+              });
+              sessionUserId = clerkUser.id;
+            }
+          } else {
+            sessionUserId = clerkUser.id;
+          }
+        }
+      } catch {
+        // Clerk not active or not authenticated
+      }
+    }
+
+    // If no user is authenticated via cookie or Clerk, return null
     if (!sessionUserId) {
       return null;
     }
-
-    const db = await getDb();
 
     // Query application users table
     const matched = await db

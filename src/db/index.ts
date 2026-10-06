@@ -265,6 +265,12 @@ async function initializeTables(client: PGlite) {
       parent_message_id TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    CREATE TABLE IF NOT EXISTS chat_reactions (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      emoji TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS contacts (
@@ -389,6 +395,14 @@ async function initializeTables(client: PGlite) {
     DO $$ BEGIN
       ALTER TABLE recordings ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id);
     EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+    CREATE TABLE IF NOT EXISTS chat_reactions (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
   `);
 
   // Check if workspace organization exists, if not seed workspace
