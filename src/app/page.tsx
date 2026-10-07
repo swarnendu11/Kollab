@@ -67,7 +67,7 @@ export default function LandingPage() {
 
           <nav className="hidden md:flex items-center gap-7 text-xs font-black uppercase tracking-wider text-white/90">
             <a href="#superpowers" className="hover:text-cyan-300 transition-colors drop-shadow-sm">
-              Platform Demo
+              Platform Tour
             </a>
             <a href="#pillars" className="hover:text-cyan-300 transition-colors drop-shadow-sm">
               Features

@@ -88,7 +88,7 @@ export function InteractiveSuperpowers() {
       ...prev,
       {
         id: Date.now(),
-        author: "You (Demo)",
+        author: "You",
         role: "Workspace Host",
         text: chatInput.trim(),
         time: "Just now",
@@ -179,7 +179,7 @@ export function InteractiveSuperpowers() {
           </div>
 
           <div className="flex items-center gap-2 text-xs font-black text-cyan-300">
-            <span className="hidden sm:inline">LIVE DEMO</span>
+            <span className="hidden sm:inline">LIVE PREVIEW</span>
             <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-mono uppercase text-cyan-200 font-extrabold">
               Interactive
             </span>

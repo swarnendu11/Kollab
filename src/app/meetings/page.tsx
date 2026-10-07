@@ -18,9 +18,11 @@ import {
   Loader2,
   Sliders,
   QrCode,
+  Plus,
 } from "lucide-react";
 import { HardwareTestModal } from "@/components/ui/hardware-test-modal";
 import { ShareQrModal } from "@/components/ui/share-qr-modal";
+import { CreateMeetingModal } from "@/components/meetings/create-meeting-modal";
 import { fetchJsonWithTimeout } from "@/lib/client-fetch";
 
 export default function MeetingsPage() {
@@ -29,10 +31,12 @@ export default function MeetingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Diagnostic & QR Share modals
+  // Diagnostic, QR Share, and Create Meeting modals
   const [hardwareModalOpen, setHardwareModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedMeetingForShare, setSelectedMeetingForShare] = useState<any>(null);
+  const [createMeetingModalOpen, setCreateMeetingModalOpen] = useState(false);
+  const [createMeetingMode, setCreateMeetingMode] = useState<"instant" | "scheduled">("scheduled");
 
   const loadMeetings = useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -87,19 +91,28 @@ export default function MeetingsPage() {
               <span>Test Audio & Video</span>
             </Button>
 
-            <Link href="/calendar" className="inline-flex shrink-0">
-              <Button variant="outline" className="rounded-xl h-10 px-4 text-xs font-semibold gap-2 border-slate-200 hover:bg-slate-50">
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                <span>Schedule Meeting</span>
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateMeetingMode("scheduled");
+                setCreateMeetingModalOpen(true);
+              }}
+              className="rounded-xl h-10 px-4 text-xs font-semibold gap-2 border-slate-200 hover:bg-slate-50"
+            >
+              <Calendar className="w-4 h-4 text-emerald-600" />
+              <span>Schedule Meeting</span>
+            </Button>
 
-            <Link href="/meeting/new" className="inline-flex shrink-0">
-              <Button className="rounded-xl h-10 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-sm shadow-indigo-500/25">
-                <Video className="w-4 h-4" />
-                <span>Instant Meeting</span>
-              </Button>
-            </Link>
+            <Button
+              onClick={() => {
+                setCreateMeetingMode("instant");
+                setCreateMeetingModalOpen(true);
+              }}
+              className="rounded-xl h-10 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-sm shadow-indigo-500/25"
+            >
+              <Video className="w-4 h-4" />
+              <span>New Meeting</span>
+            </Button>
           </div>
         </div>
 
@@ -278,6 +291,16 @@ export default function MeetingsPage() {
           joinCode={selectedMeetingForShare.joinCode}
         />
       )}
+
+      {/* Create / Schedule Meeting Modal */}
+      <CreateMeetingModal
+        isOpen={createMeetingModalOpen}
+        onClose={() => setCreateMeetingModalOpen(false)}
+        defaultMode={createMeetingMode}
+        onSuccess={(newMeeting) => {
+          setMeetings((prev) => [newMeeting, ...prev]);
+        }}
+      />
     </AppShell>
   );
 }

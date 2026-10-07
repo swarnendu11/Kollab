@@ -177,6 +177,10 @@ async function initializeTables(client: PGlite) {
       recording_enabled BOOLEAN DEFAULT TRUE NOT NULL,
       chat_enabled BOOLEAN DEFAULT TRUE NOT NULL,
       screen_share_enabled BOOLEAN DEFAULT TRUE NOT NULL,
+      is_locked BOOLEAN DEFAULT FALSE NOT NULL,
+      allow_reactions BOOLEAN DEFAULT TRUE NOT NULL,
+      allow_ai_copilot BOOLEAN DEFAULT TRUE NOT NULL,
+      allow_file_sharing BOOLEAN DEFAULT TRUE NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
 
@@ -186,12 +190,39 @@ async function initializeTables(client: PGlite) {
       user_id TEXT REFERENCES users(id),
       display_name TEXT NOT NULL,
       role TEXT DEFAULT 'participant' NOT NULL,
+      status TEXT DEFAULT 'admitted' NOT NULL,
       is_muted BOOLEAN DEFAULT FALSE NOT NULL,
       is_camera_off BOOLEAN DEFAULT FALSE NOT NULL,
       is_hand_raised BOOLEAN DEFAULT FALSE NOT NULL,
+      is_screen_sharing BOOLEAN DEFAULT FALSE NOT NULL,
       joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
       left_at TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS breakout_rooms (
+      id TEXT PRIMARY KEY,
+      meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      status TEXT DEFAULT 'active' NOT NULL,
+      assigned_participants JSONB DEFAULT '[]',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS meeting_invites (
+      id TEXT PRIMARY KEY,
+      meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      status TEXT DEFAULT 'pending' NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+
+    -- Safe column additions for pre-existing local PGlite databases
+    ALTER TABLE meetings ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE NOT NULL;
+    ALTER TABLE meetings ADD COLUMN IF NOT EXISTS allow_reactions BOOLEAN DEFAULT TRUE NOT NULL;
+    ALTER TABLE meetings ADD COLUMN IF NOT EXISTS allow_ai_copilot BOOLEAN DEFAULT TRUE NOT NULL;
+    ALTER TABLE meetings ADD COLUMN IF NOT EXISTS allow_file_sharing BOOLEAN DEFAULT TRUE NOT NULL;
+    ALTER TABLE meeting_participants ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'admitted' NOT NULL;
+    ALTER TABLE meeting_participants ADD COLUMN IF NOT EXISTS is_screen_sharing BOOLEAN DEFAULT FALSE NOT NULL;
 
     CREATE TABLE IF NOT EXISTS recordings (
       id TEXT PRIMARY KEY,
@@ -405,6 +436,24 @@ async function initializeTables(client: PGlite) {
   const count = parseInt((res.rows[0] as any)?.count || "0", 10);
   if (count === 0) {
     await seedInitialData(client);
+  } else {
+    // If already seeded, ensure tasks and organization attribution are synced
+    await client.exec(`
+      UPDATE meetings SET organization_id = 'org_kollab' WHERE organization_id IS NULL;
+      UPDATE recordings SET organization_id = 'org_kollab' WHERE organization_id IS NULL;
+    `);
+    const taskRes = await client.query("SELECT COUNT(*) FROM tasks;");
+    const taskCount = parseInt((taskRes.rows[0] as any)?.count || "0", 10);
+    if (taskCount === 0) {
+      await client.exec(`
+        INSERT INTO tasks (id, organization_id, meeting_id, title, description, owner_id, owner_name, creator_id, due_date, priority, status) VALUES
+        ('task_1', 'org_kollab', 'meet_product_sync', 'Review design system token contrast ratios for WCAG AAA compliance', 'Ensure high contrast on dark and light surfaces for all meeting control buttons.', 'usr_sarah_chen', 'Sarah Chen', 'usr_demo_admin', 'Today, 5:00 PM', 'high', 'todo'),
+        ('task_2', 'org_kollab', 'meet_eng_standup', 'Validate WebRTC SFU peer latency metrics across regional test nodes', 'Run sub-second automated audio latency benchmarks with dynamic DTX.', 'usr_marcus_vance', 'Marcus Vance', 'usr_demo_admin', 'Tomorrow, 12:00 PM', 'urgent', 'todo'),
+        ('task_3', 'org_kollab', 'meet_ai_brainstorm', 'Integrate real-time audio spectrum analyzer into hardware test modal', 'Connect Web Audio analyser node to frequency visualizer for microphone testing.', 'usr_david_kim', 'David Kim', 'usr_demo_admin', 'Friday, 3:00 PM', 'medium', 'todo'),
+        ('task_4', 'org_kollab', 'meet_q3_retrospective', 'Deploy live hardware device check modal with speaker chime test', 'Verify Web Audio oscillator synthesis chime for audio output check.', 'usr_david_kim', 'David Kim', 'usr_demo_admin', 'Yesterday', 'medium', 'done')
+        ON CONFLICT (id) DO NOTHING;
+      `);
+    }
   }
 }
 
@@ -461,11 +510,11 @@ async function seedInitialData(client: PGlite) {
     ON CONFLICT (id) DO NOTHING;
 
     -- Meetings
-    INSERT INTO meetings (id, title, description, host_id, scheduled_start, scheduled_end, status, join_code, room_name, waiting_room_enabled, recording_enabled, chat_enabled, screen_share_enabled) VALUES
-    ('meet_product_sync', 'Weekly Product Design Sync', 'Reviewing UI components, design tokens, and next release milestones with design & engineering.', 'usr_demo_admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', 'scheduled', 'klb-design-q4', 'room_klb_design_q4', FALSE, TRUE, TRUE, TRUE),
-    ('meet_eng_standup', 'Engineering Sprint Standup', 'Daily technical alignment on media pipelines, database indexes, and real-time socket connections.', 'usr_marcus_vance', CURRENT_TIMESTAMP + INTERVAL '2 hours', CURRENT_TIMESTAMP + INTERVAL '3 hours', 'scheduled', 'klb-eng-daily', 'room_klb_eng_daily', FALSE, TRUE, TRUE, TRUE),
-    ('meet_ai_brainstorm', 'AI Workflow & Architecture Brainstorm', 'Exploring live transcription, intelligent meeting summaries, and automated action item extraction.', 'usr_sarah_chen', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', 'live', 'klb-ai-brainstorm', 'room_klb_ai_brainstorm', FALSE, TRUE, TRUE, TRUE),
-    ('meet_q3_retrospective', 'Q3 Platform Retrospective', 'Quarterly retrospective on platform stability, client adoption, and feedback reviews.', 'usr_demo_admin', CURRENT_TIMESTAMP - INTERVAL '1 day', CURRENT_TIMESTAMP - INTERVAL '23 hours', 'ended', 'klb-retro-q3', 'room_klb_retro_q3', FALSE, TRUE, TRUE, TRUE)
+    INSERT INTO meetings (id, organization_id, title, description, host_id, scheduled_start, scheduled_end, status, join_code, room_name, waiting_room_enabled, recording_enabled, chat_enabled, screen_share_enabled) VALUES
+    ('meet_product_sync', 'org_kollab', 'Weekly Product Design Sync', 'Reviewing UI components, design tokens, and next release milestones with design & engineering.', 'usr_demo_admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', 'scheduled', 'klb-design-q4', 'room_klb_design_q4', FALSE, TRUE, TRUE, TRUE),
+    ('meet_eng_standup', 'org_kollab', 'Engineering Sprint Standup', 'Daily technical alignment on media pipelines, database indexes, and real-time socket connections.', 'usr_marcus_vance', CURRENT_TIMESTAMP + INTERVAL '2 hours', CURRENT_TIMESTAMP + INTERVAL '3 hours', 'scheduled', 'klb-eng-daily', 'room_klb_eng_daily', FALSE, TRUE, TRUE, TRUE),
+    ('meet_ai_brainstorm', 'org_kollab', 'AI Workflow & Architecture Brainstorm', 'Exploring live transcription, intelligent meeting summaries, and automated action item extraction.', 'usr_sarah_chen', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', 'live', 'klb-ai-brainstorm', 'room_klb_ai_brainstorm', FALSE, TRUE, TRUE, TRUE),
+    ('meet_q3_retrospective', 'org_kollab', 'Q3 Platform Retrospective', 'Quarterly retrospective on platform stability, client adoption, and feedback reviews.', 'usr_demo_admin', CURRENT_TIMESTAMP - INTERVAL '1 day', CURRENT_TIMESTAMP - INTERVAL '23 hours', 'ended', 'klb-retro-q3', 'room_klb_retro_q3', FALSE, TRUE, TRUE, TRUE)
     ON CONFLICT (id) DO NOTHING;
 
     -- Meeting Summaries & Action Items
@@ -480,6 +529,14 @@ async function seedInitialData(client: PGlite) {
     ('act_1', 'meet_q3_retrospective', 'Deploy live hardware device check modal with speaker chime test', 'David Kim', 'usr_david_kim', 'completed'),
     ('act_2', 'meet_q3_retrospective', 'Integrate interactive collaborative whiteboard drawer directly into call room', 'Sarah Chen', 'usr_sarah_chen', 'completed'),
     ('act_3', 'meet_q3_retrospective', 'Publish Q4 product roadmap document for team access', 'Alex Rivera', 'usr_demo_admin', 'completed')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Tasks & Action Items
+    INSERT INTO tasks (id, organization_id, meeting_id, title, description, owner_id, owner_name, creator_id, due_date, priority, status) VALUES
+    ('task_1', 'org_kollab', 'meet_product_sync', 'Review design system token contrast ratios for WCAG AAA compliance', 'Ensure high contrast on dark and light surfaces for all meeting control buttons.', 'usr_sarah_chen', 'Sarah Chen', 'usr_demo_admin', 'Today, 5:00 PM', 'high', 'todo'),
+    ('task_2', 'org_kollab', 'meet_eng_standup', 'Validate WebRTC SFU peer latency metrics across regional test nodes', 'Run sub-second automated audio latency benchmarks with dynamic DTX.', 'usr_marcus_vance', 'Marcus Vance', 'usr_demo_admin', 'Tomorrow, 12:00 PM', 'urgent', 'todo'),
+    ('task_3', 'org_kollab', 'meet_ai_brainstorm', 'Integrate real-time audio spectrum analyzer into hardware test modal', 'Connect Web Audio analyser node to frequency visualizer for microphone testing.', 'usr_david_kim', 'David Kim', 'usr_demo_admin', 'Friday, 3:00 PM', 'medium', 'todo'),
+    ('task_4', 'org_kollab', 'meet_q3_retrospective', 'Deploy live hardware device check modal with speaker chime test', 'Verify Web Audio oscillator synthesis chime for audio output check.', 'usr_david_kim', 'David Kim', 'usr_demo_admin', 'Yesterday', 'medium', 'done')
     ON CONFLICT (id) DO NOTHING;
 
     -- Calendar Events
@@ -542,10 +599,14 @@ Kollab delivers an all-in-one unified workspace combining HD video conferencing,
     ON CONFLICT (id) DO NOTHING;
 
     -- Recordings
-    INSERT INTO recordings (id, meeting_id, title, duration_seconds, file_url, storage_path, file_size_bytes, thumbnail_url, status) VALUES
-    ('rec_1', 'meet_q3_retrospective', 'Q3 Platform Retrospective & Roadmap Session', 2140, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 'recordings/rec_1.mp4', 145000000, 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop&q=80', 'ready'),
-    ('rec_2', 'meet_product_sync', 'Design System & UI Color Tokens Review', 1320, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', 'recordings/rec_2.mp4', 85000000, 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80', 'ready')
+    INSERT INTO recordings (id, organization_id, meeting_id, title, duration_seconds, file_url, storage_path, file_size_bytes, thumbnail_url, status) VALUES
+    ('rec_1', 'org_kollab', 'meet_q3_retrospective', 'Q3 Platform Retrospective & Roadmap Session', 2140, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 'recordings/rec_1.mp4', 145000000, 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop&q=80', 'ready'),
+    ('rec_2', 'org_kollab', 'meet_product_sync', 'Design System & UI Color Tokens Review', 1320, 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', 'recordings/rec_2.mp4', 85000000, 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80', 'ready')
     ON CONFLICT (id) DO NOTHING;
+
+    -- Synchronize organization_id on any previously unassociated records
+    UPDATE meetings SET organization_id = 'org_kollab' WHERE organization_id IS NULL;
+    UPDATE recordings SET organization_id = 'org_kollab' WHERE organization_id IS NULL;
   `);
 }
 

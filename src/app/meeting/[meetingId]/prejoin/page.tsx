@@ -34,6 +34,7 @@ export default function PrejoinPage() {
 
   // States
   const [meeting, setMeeting] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -42,7 +43,7 @@ export default function PrejoinPage() {
   // Enhancement options
   const [autoLighting, setAutoLighting] = useState(true);
   const [noiseSuppression, setNoiseSuppression] = useState<"off" | "standard" | "strong">("standard");
-  const [backgroundEffect, setBackgroundEffect] = useState<"none" | "blur" | "office" | "studio" | "gradient">("none");
+  const [backgroundEffect, setBackgroundEffect] = useState<"none" | "blur" | "strong_blur">("none");
 
   // Devices
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
@@ -53,8 +54,16 @@ export default function PrejoinPage() {
 
   const [stream, setStream] = useState<MediaStream | null>(null);
 
-  // Load meeting details
+  // Load meeting details & user session
   useEffect(() => {
+    // Fetch current user session
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) setCurrentUser(d.user);
+      })
+      .catch(() => {});
+
     fetch(`/api/meetings/${meetingId}`)
       .then((r) => r.json())
       .then((data) => {
@@ -187,6 +196,8 @@ export default function PrejoinPage() {
           autoLighting,
           noiseSuppression,
           backgroundEffect,
+          selectedVideoId,
+          selectedAudioId,
         })
       );
     }
@@ -252,11 +263,30 @@ export default function PrejoinPage() {
             {/* Camera Off Avatar Overlay */}
             {!isCameraOn && (
               <div className="flex flex-col items-center justify-center text-center p-6">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#059669] to-[#10B981] text-white flex items-center justify-center text-3xl font-extrabold shadow-xl">
-                  AM
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-violet-600 text-white flex items-center justify-center text-3xl font-extrabold shadow-2xl border border-indigo-400/30 overflow-hidden">
+                  {currentUser?.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.fullName || "User"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {currentUser?.fullName
+                        ? currentUser.fullName
+                            .split(" ")
+                            .map((p: string) => p[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()
+                        : "KL"}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-4 text-sm font-semibold text-slate-300">Camera is turned off</p>
-                <p className="text-xs text-slate-500 mt-1">Your video will not be visible to participants</p>
+                <p className="mt-4 text-sm font-semibold text-slate-200">
+                  {currentUser?.fullName || "Camera is turned off"}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Your video will be muted on join</p>
               </div>
             )}
 
@@ -373,7 +403,7 @@ export default function PrejoinPage() {
             <div className="pt-3 border-t border-slate-800/80">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-slate-200">Noise Cancellation</span>
-                <span className="text-[11px] uppercase font-bold text-[#10B981]">
+                <span className="text-[11px] uppercase font-bold text-indigo-400">
                   {noiseSuppression}
                 </span>
               </div>
@@ -384,7 +414,7 @@ export default function PrejoinPage() {
                     onClick={() => setNoiseSuppression(lvl)}
                     className={`py-1.5 rounded-lg text-xs font-medium capitalize border transition-all ${
                       noiseSuppression === lvl
-                        ? "bg-[#10B981] text-white border-transparent shadow-xs"
+                        ? "bg-indigo-600 text-white border-indigo-400/40 shadow-xs"
                         : "bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white"
                     }`}
                   >
@@ -394,22 +424,21 @@ export default function PrejoinPage() {
               </div>
             </div>
 
-            {/* Virtual Background */}
+            {/* Background Effects */}
             <div className="pt-3 border-t border-slate-800/80">
               <div className="text-xs font-semibold text-slate-200 mb-2">Background Effects</div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: "none", label: "None" },
-                  { id: "blur", label: "Blur" },
-                  { id: "office", label: "Office" },
-                  { id: "studio", label: "Studio" },
+                  { id: "blur", label: "Standard Blur" },
+                  { id: "strong_blur", label: "Heavy Blur" },
                 ].map((bg) => (
                   <button
                     key={bg.id}
                     onClick={() => setBackgroundEffect(bg.id as any)}
                     className={`py-1.5 rounded-lg text-xs font-medium border transition-all ${
                       backgroundEffect === bg.id
-                        ? "bg-[#10B981] text-white border-transparent"
+                        ? "bg-indigo-600 text-white border-indigo-400/40 shadow-xs"
                         : "bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white"
                     }`}
                   >
@@ -421,14 +450,36 @@ export default function PrejoinPage() {
           </div>
 
           {/* Primary Join Button */}
-          <Button
-            onClick={handleJoin}
-            size="lg"
-            className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold text-base h-13 rounded-2xl shadow-xl shadow-emerald-500/25 gap-2"
-          >
-            <span>Join Now</span>
-            <ChevronRight className="w-5 h-5" />
-          </Button>
+          <div className="space-y-3 pt-1">
+            <button
+              onClick={handleJoin}
+              className="group relative w-full h-13 rounded-xl font-bold text-sm sm:text-base text-white transition-all duration-200 cursor-pointer overflow-hidden
+                bg-gradient-to-r from-indigo-600 via-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600
+                border border-indigo-400/40 hover:border-indigo-300/80
+                shadow-[0_1px_2px_rgba(255,255,255,0.25)_inset,0_10px_25px_-5px_rgba(99,102,241,0.4)]
+                hover:shadow-[0_1px_2px_rgba(255,255,255,0.35)_inset,0_16px_32px_-6px_rgba(99,102,241,0.55)]
+                active:scale-[0.99] flex items-center justify-center gap-3 select-none"
+            >
+              {/* Subtle animated light sweep on hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
+
+              <Video className="w-5 h-5 text-indigo-100 group-hover:scale-110 transition-transform duration-200" />
+              <span className="tracking-tight">Join Meeting Now</span>
+              <ChevronRight className="w-4 h-4 text-indigo-200 group-hover:translate-x-1 transition-transform duration-200" />
+            </button>
+
+            <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>
+                Joining as{" "}
+                <span className="text-slate-200 font-semibold">
+                  {currentUser?.fullName || "Attendee"}
+                </span>
+              </span>
+              <span>•</span>
+              <span className="text-slate-400">Encrypted WebRTC</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

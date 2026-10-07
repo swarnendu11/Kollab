@@ -14,12 +14,31 @@ export type RealtimeEventType =
   | "notification.created"
   | "meeting.started"
   | "meeting.ended"
+  | "meeting.settings_updated"
+  | "meeting.waiting_room.joined"
+  | "meeting.participant.admitted"
+  | "meeting.participant.admitted_all"
+  | "meeting.participant.rejected"
+  | "meeting.participant.muted"
+  | "meeting.participants.muted_all"
+  | "meeting.participant.removed"
+  | "meeting.participant.role_updated"
+  | "meeting.recording.started"
+  | "meeting.recording.processing"
+  | "meeting.recording.ready"
+  | "meeting.caption.created"
+  | "meeting.breakout.created"
+  | "meeting.breakout.assigned"
+  | "meeting.breakout.broadcast"
+  | "meeting.breakout.closed_all"
   | "recording.ready"
   | "summary.ready"
   | "document.updated"
   | "whiteboard.updated"
   | "task.created"
-  | "task.updated";
+  | "task.updated"
+  | "meeting.code_updated"
+  | "meeting.member_invited";
 
 export interface RealtimeMessage {
   id: string;

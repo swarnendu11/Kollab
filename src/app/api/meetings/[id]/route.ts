@@ -38,6 +38,10 @@ export async function GET(
         recordingEnabled: meetings.recordingEnabled,
         chatEnabled: meetings.chatEnabled,
         screenShareEnabled: meetings.screenShareEnabled,
+        isLocked: meetings.isLocked,
+        allowReactions: meetings.allowReactions,
+        allowAiCopilot: meetings.allowAiCopilot,
+        allowFileSharing: meetings.allowFileSharing,
         createdAt: meetings.createdAt,
       })
       .from(meetings)
@@ -61,14 +65,32 @@ export async function GET(
       return NextResponse.json({ error: "Access denied: Meeting belongs to another workspace" }, { status: 403 });
     }
 
-    const participants = await db
-      .select()
+    const allParticipants = await db
+      .select({
+        id: meetingParticipants.id,
+        meetingId: meetingParticipants.meetingId,
+        userId: meetingParticipants.userId,
+        displayName: meetingParticipants.displayName,
+        role: meetingParticipants.role,
+        status: meetingParticipants.status,
+        isMuted: meetingParticipants.isMuted,
+        isCameraOff: meetingParticipants.isCameraOff,
+        isHandRaised: meetingParticipants.isHandRaised,
+        isScreenSharing: meetingParticipants.isScreenSharing,
+        joinedAt: meetingParticipants.joinedAt,
+        userAvatar: users.avatarUrl,
+      })
       .from(meetingParticipants)
+      .leftJoin(users, eq(meetingParticipants.userId, users.id))
       .where(eq(meetingParticipants.meetingId, meeting.id));
+
+    const admitted = allParticipants.filter((p: any) => p.status === "admitted");
+    const waiting = allParticipants.filter((p: any) => p.status === "waiting");
 
     return NextResponse.json({
       meeting,
-      participants,
+      participants: admitted,
+      waitingRoom: waiting,
     });
   } catch (error) {
     return handleApiError(error);
@@ -137,8 +159,20 @@ export async function PATCH(
     if (body.recordingEnabled !== undefined) updateData.recordingEnabled = Boolean(body.recordingEnabled);
     if (body.chatEnabled !== undefined) updateData.chatEnabled = Boolean(body.chatEnabled);
     if (body.screenShareEnabled !== undefined) updateData.screenShareEnabled = Boolean(body.screenShareEnabled);
+    if (body.isLocked !== undefined) updateData.isLocked = Boolean(body.isLocked);
+    if (body.allowReactions !== undefined) updateData.allowReactions = Boolean(body.allowReactions);
+    if (body.allowAiCopilot !== undefined) updateData.allowAiCopilot = Boolean(body.allowAiCopilot);
+    if (body.allowFileSharing !== undefined) updateData.allowFileSharing = Boolean(body.allowFileSharing);
 
     await db.update(meetings).set(updateData).where(eq(meetings.id, meeting.id));
+
+    realtimeHub.broadcast({
+      id: `rt_${Date.now()}`,
+      type: "meeting.settings_updated",
+      organizationId: user.organizationId,
+      timestamp: new Date().toISOString(),
+      payload: { meetingId: meeting.id, ...updateData },
+    });
 
     await logAuditEvent({
       organizationId: user.organizationId,

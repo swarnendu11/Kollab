@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { HardwareTestModal } from "@/components/ui/hardware-test-modal";
 import { ShareQrModal } from "@/components/ui/share-qr-modal";
+import { CreateMeetingModal } from "@/components/meetings/create-meeting-modal";
 import { useRealtime } from "@/lib/use-realtime";
 
 export default function DashboardPage() {
@@ -48,10 +49,12 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
 
-  // New Features: Hardware Diagnostic & QR Share modals
+  // New Features: Hardware Diagnostic & QR Share & Create Meeting modals
   const [hardwareModalOpen, setHardwareModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedMeetingForShare, setSelectedMeetingForShare] = useState<any>(null);
+  const [createMeetingModalOpen, setCreateMeetingModalOpen] = useState(false);
+  const [createMeetingMode, setCreateMeetingMode] = useState<"instant" | "scheduled">("scheduled");
 
   // Ask Kollab AI state
   const [aiPrompt, setAiPrompt] = useState("");
@@ -75,10 +78,15 @@ export default function DashboardPage() {
         router.replace("/sign-in?redirect_url=/dashboard");
       });
 
-    fetch("/api/meetings?status=scheduled")
+    fetch("/api/meetings")
       .then((r) => r.json())
       .then((d) => {
-        if (d.meetings) setUpcomingMeetings(d.meetings);
+        if (d.meetings) {
+          const activeOrScheduled = d.meetings.filter(
+            (m: any) => m.status === "scheduled" || m.status === "live"
+          );
+          setUpcomingMeetings(activeOrScheduled);
+        }
         setLoadingMeetings(false);
       })
       .catch(() => setLoadingMeetings(false));
@@ -104,10 +112,20 @@ export default function DashboardPage() {
   useRealtime({
     onEvent: (event) => {
       if (event.type === "meeting.started" || event.type === "meeting.ended") {
-        fetch("/api/meetings?status=scheduled")
+        fetch("/api/meetings")
           .then((r) => r.json())
           .then((d) => {
-            if (d.meetings) setUpcomingMeetings(d.meetings);
+            if (d.meetings) {
+              const activeOrScheduled = d.meetings.filter(
+                (m: any) => m.status === "scheduled" || m.status === "live"
+              );
+              setUpcomingMeetings(activeOrScheduled);
+            }
+          });
+        fetch("/api/activity")
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.activities) setActivities(d.activities);
           });
       } else if (event.type === "task.created" || event.type === "task.updated") {
         fetch("/api/tasks")
@@ -139,16 +157,21 @@ export default function DashboardPage() {
     } catch {}
   };
 
-  const formatRelativeTime = (isoString: string) => {
+  const formatRelativeTime = (isoString?: string) => {
     if (!isoString) return "just now";
-    const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
-    if (diffSeconds < 10) return "just now";
+    const date = new Date(isoString);
+    const parsedTime = date.getTime();
+    if (isNaN(parsedTime)) return "just now";
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - parsedTime) / 1000));
+    if (diffSeconds < 20) return "just now";
     if (diffSeconds < 60) return `${diffSeconds}s ago`;
     const diffMinutes = Math.floor(diffSeconds / 60);
     if (diffMinutes < 60) return `${diffMinutes}m ago`;
     const diffHours = Math.floor(diffMinutes / 60);
     if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffHours / 24)}d ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return "yesterday";
+    return `${diffDays}d ago`;
   };
 
   const startInstantMeeting = async () => {
@@ -277,9 +300,12 @@ export default function DashboardPage() {
           </button>
 
           {/* Action 2: Schedule Meeting (Fresh Electric Emerald) */}
-          <Link
-            href="/calendar"
-            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center group"
+          <button
+            onClick={() => {
+              setCreateMeetingMode("scheduled");
+              setCreateMeetingModalOpen(true);
+            }}
+            className="flex flex-col items-center justify-center p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center group cursor-pointer"
           >
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#10B981] to-[#059669] text-white flex items-center justify-center mb-3 shadow-md shadow-emerald-500/30 group-hover:scale-110 transition-transform">
               <Calendar className="w-6 h-6" />
@@ -287,8 +313,8 @@ export default function DashboardPage() {
             <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
               Schedule Meeting
             </span>
-            <span className="text-[11px] text-slate-500 mt-0.5">Calendar & invites</span>
-          </Link>
+            <span className="text-[11px] text-slate-500 mt-0.5">Code & members</span>
+          </button>
 
           {/* Action 3: New Chat (Warm Sunset Coral) */}
           <Link
@@ -435,10 +461,24 @@ export default function DashboardPage() {
                   {upcomingMeetings.length}
                 </span>
               </div>
-              <Link href="/meetings" className="text-xs font-bold text-[#059669] hover:underline flex items-center gap-1">
-                <span>View all</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setCreateMeetingMode("scheduled");
+                    setCreateMeetingModalOpen(true);
+                  }}
+                  className="h-8 px-3 text-xs rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-semibold gap-1.5 shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Schedule</span>
+                </Button>
+                <Link href="/meetings" className="text-xs font-bold text-[#059669] hover:underline flex items-center gap-1">
+                  <span>View all</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
 
             {loadingMeetings ? (
@@ -470,12 +510,24 @@ export default function DashboardPage() {
                           <span className="text-[10px] bg-emerald-50 text-[#047857] border border-emerald-200 px-2 py-0.5 rounded-md font-mono font-semibold">
                             {m.joinCode}
                           </span>
+                          {m.status === "live" && (
+                            <span className="text-[10px] bg-emerald-100 text-[#047857] border border-emerald-300 px-2 py-0.5 rounded-full font-bold flex items-center gap-1.5 animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Live Now
+                            </span>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-1.5">
                           <span className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-emerald-600" />
                             <span>
-                              {m.scheduledStart ? new Date(m.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Today"}
+                              {m.status === "live"
+                                ? "In Progress"
+                                : m.scheduledStart
+                                ? new Date(m.scheduledStart).toLocaleDateString([], { month: "short", day: "numeric" }) +
+                                  " • " +
+                                  new Date(m.scheduledStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                                : "Scheduled Today"}
                             </span>
                           </span>
                           <span className="flex items-center gap-1.5">
@@ -690,6 +742,21 @@ export default function DashboardPage() {
           joinCode={selectedMeetingForShare.joinCode}
         />
       )}
+
+      {/* Create / Schedule Meeting Modal with Code Generator & Member Selection */}
+      <CreateMeetingModal
+        isOpen={createMeetingModalOpen}
+        onClose={() => setCreateMeetingModalOpen(false)}
+        defaultMode={createMeetingMode}
+        onSuccess={(newMeeting) => {
+          setUpcomingMeetings((prev) => [newMeeting, ...prev]);
+          fetch("/api/activity")
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.activities) setActivities(d.activities);
+            });
+        }}
+      />
     </AppShell>
   );
 }

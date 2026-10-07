@@ -49,6 +49,10 @@ export const meetings = pgTable("meetings", {
   recordingEnabled: boolean("recording_enabled").default(true).notNull(),
   chatEnabled: boolean("chat_enabled").default(true).notNull(),
   screenShareEnabled: boolean("screen_share_enabled").default(true).notNull(),
+  isLocked: boolean("is_locked").default(false).notNull(),
+  allowReactions: boolean("allow_reactions").default(true).notNull(),
+  allowAiCopilot: boolean("allow_ai_copilot").default(true).notNull(),
+  allowFileSharing: boolean("allow_file_sharing").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("meeting_host_idx").on(table.hostId),
@@ -61,11 +65,22 @@ export const meetingParticipants = pgTable("meeting_participants", {
   userId: text("user_id").references(() => users.id),
   displayName: text("display_name").notNull(),
   role: text("role").notNull().default("participant"), // 'host' | 'co-host' | 'participant' | 'viewer'
+  status: text("status").default("admitted").notNull(), // 'waiting' | 'admitted' | 'rejected'
   isMuted: boolean("is_muted").default(false).notNull(),
   isCameraOff: boolean("is_camera_off").default(false).notNull(),
   isHandRaised: boolean("is_hand_raised").default(false).notNull(),
+  isScreenSharing: boolean("is_screen_sharing").default(false).notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
   leftAt: timestamp("left_at"),
+});
+
+export const breakoutRooms = pgTable("breakout_rooms", {
+  id: text("id").primaryKey(),
+  meetingId: text("meeting_id").notNull().references(() => meetings.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  status: text("status").default("active").notNull(), // 'active' | 'closed'
+  assignedParticipants: jsonb("assigned_participants").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const meetingInvites = pgTable("meeting_invites", {

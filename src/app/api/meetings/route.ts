@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
-import { meetings, users, meetingParticipants } from "@/db/schema";
+import { meetings, users, meetingParticipants, meetingInvites, notifications } from "@/db/schema";
 import { requireAuth, requireResourceAccess, handleApiError } from "@/lib/auth";
 import { generateJoinCode } from "@/lib/utils";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { createId } from "@/lib/id";
 import { realtimeHub } from "@/lib/realtime";
 import { logAuditEvent } from "@/lib/audit";
@@ -80,7 +80,10 @@ export async function POST(req: Request) {
     }
 
     const meetingId = createId("meet");
-    const joinCode = generateJoinCode();
+    const rawCustomCode = body.customJoinCode || body.joinCode;
+    const joinCode = (rawCustomCode && typeof rawCustomCode === "string" && rawCustomCode.trim().length >= 6)
+      ? rawCustomCode.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-")
+      : generateJoinCode();
     const roomName = `room_${joinCode.replace(/-/g, "_")}`;
 
     const newMeeting = {
@@ -119,6 +122,48 @@ export async function POST(req: Request) {
       isHandRaised: false,
       joinedAt: new Date(),
     });
+
+    // Process optional invited members on creation
+    const invitedUserIds: string[] = Array.isArray(body.invitedUserIds) ? body.invitedUserIds : [];
+    const invitedEmails: string[] = Array.isArray(body.invitedEmails) ? body.invitedEmails : [];
+
+    if (invitedUserIds.length > 0) {
+      const foundUsers = await db
+        .select({ id: users.id, email: users.email, fullName: users.fullName })
+        .from(users)
+        .where(inArray(users.id, invitedUserIds));
+
+      for (const u of foundUsers) {
+        await db.insert(meetingInvites).values({
+          id: createId("inv"),
+          meetingId,
+          email: u.email,
+          status: "pending",
+        });
+
+        await db.insert(notifications).values({
+          id: createId("ntf"),
+          userId: u.id,
+          type: "meeting_invite",
+          title: `Invited to Meeting: ${newMeeting.title}`,
+          message: `${user.fullName} invited you to join "${newMeeting.title}". Code: ${joinCode}`,
+          link: `/meeting/${meetingId}/prejoin`,
+          read: false,
+        });
+      }
+    }
+
+    for (const email of invitedEmails) {
+      const normalized = email.trim().toLowerCase();
+      if (normalized.includes("@")) {
+        await db.insert(meetingInvites).values({
+          id: createId("inv"),
+          meetingId,
+          email: normalized,
+          status: "pending",
+        });
+      }
+    }
 
     if (isInstant) {
       realtimeHub.broadcast({
